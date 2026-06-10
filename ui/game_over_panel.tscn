@@ -1,0 +1,67 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://ui/game_over_controller.gd" id="1_gameover"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_result"]
+font_size = 48
+font_color = Color(1, 0.85, 0.15, 1)
+outline_size = 5
+outline_color = Color(0.2, 0.1, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_stats"]
+font_size = 20
+font_color = Color(0.85, 0.85, 0.85, 1)
+
+[node name="GameOverPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_gameover")
+process_mode = 3
+
+[node name="BackgroundDim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -180.0
+offset_right = 250.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ResultLabel" type="Label" parent="CenterContainer/VBox"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "VICTORY!"
+label_settings = SubResource("LabelSettings_result")
+
+[node name="StatsLabel" type="Label" parent="CenterContainer/VBox"]
+layout_mode = 2
+horizontal_alignment = 1
+text = ""
+label_settings = SubResource("LabelSettings_stats")
+
+[node name="RestartButton" type="Button" parent="CenterContainer/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 50)
+text = "Play Again"
