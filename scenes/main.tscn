@@ -23,32 +23,32 @@ polygon = PackedVector2Array(0, 0, 2000, 0, 2000, 2000, 0, 2000)
 
 [node name="WallTop" type="StaticBody2D" parent="GameWorld"]
 position = Vector2(1000, -20)
-collision_layer = 1
-collision_mask = 3
+collision_layer = 64
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallTop"]
 shape = SubResource("RectangleShape2D_hwall")
 
 [node name="WallBottom" type="StaticBody2D" parent="GameWorld"]
 position = Vector2(1000, 2020)
-collision_layer = 1
-collision_mask = 3
+collision_layer = 64
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallBottom"]
 shape = SubResource("RectangleShape2D_hwall")
 
 [node name="WallLeft" type="StaticBody2D" parent="GameWorld"]
 position = Vector2(-20, 1000)
-collision_layer = 1
-collision_mask = 3
+collision_layer = 64
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallLeft"]
 shape = SubResource("RectangleShape2D_vwall")
 
 [node name="WallRight" type="StaticBody2D" parent="GameWorld"]
 position = Vector2(2020, 1000)
-collision_layer = 1
-collision_mask = 3
+collision_layer = 64
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallRight"]
 shape = SubResource("RectangleShape2D_vwall")

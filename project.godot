@@ -50,12 +50,13 @@ move_down={
 
 [layer_names]
 
-2d_physics/layer_1="Player+Walls"
+2d_physics/layer_1="Player"
 2d_physics/layer_2="Enemies"
 2d_physics/layer_3="Projectiles"
 2d_physics/layer_4="XPGems"
 2d_physics/layer_5="PlayerPickup"
 2d_physics/layer_6="EnemyDamage"
+2d_physics/layer_7="Walls"
 
 [physics]
 

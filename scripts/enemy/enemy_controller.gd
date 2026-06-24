@@ -4,6 +4,7 @@ extends CharacterBody2D
 var enemy_hp: float = 8.0
 var enemy_speed: float = 60.0
 var contact_damage: int = 5
+var is_dead: bool = false
 
 ## 信号
 signal enemy_died(position: Vector2)
@@ -29,7 +30,7 @@ func setup(hp: float, spd: float, dmg: int) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if game_manager.game_over:
+	if is_dead or game_manager.game_over:
 		return
 	if not game_manager.player:
 		return
@@ -41,8 +42,13 @@ func _physics_process(_delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
+	# 死亡保护：敌人已被击杀但尚未 queue_free（帧末才销毁）期间，
+	# 避免多颗子弹重复触发击杀计数与宝石掉落。
+	if is_dead:
+		return
 	enemy_hp -= amount
 	if enemy_hp <= 0.0:
+		is_dead = true
 		enemy_died.emit(global_position)
 		game_manager.add_kill()
 		call_deferred("queue_free")
