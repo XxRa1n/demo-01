@@ -57,5 +57,8 @@ func _on_restart() -> void:
 	upgrade_manager.level = 1
 	upgrade_manager.xp_to_next = 8
 
+	# 重置生成器（清空已触发 Boss 波记录、生成累加器），保证第二局 Boss 波能再触发
+	enemy_spawner.reset()
+
 	# 重新加载场景
 	get_tree().reload_current_scene()
