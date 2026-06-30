@@ -1,23 +1,22 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bln8uuho2rn5a"]
 
-[ext_resource type="Script" path="res://scripts/enemy/enemy_controller.gd" id="1_enemy"]
+[ext_resource type="Script" uid="uid://cwwtuatjblg2r" path="res://scripts/enemy/enemy_controller.gd" id="1_enemy"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 12.0
 
-[node name="Enemy" type="CharacterBody2D"]
+[node name="Enemy" type="CharacterBody2D" unique_id=362361430]
 collision_layer = 2
 collision_mask = 64
 script = ExtResource("1_enemy")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1362049868]
 shape = SubResource("CircleShape2D_enemy")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=103404127]
 
-[node name="DamageArea" type="Area2D" parent="."]
+[node name="DamageArea" type="Area2D" parent="." unique_id=501076390]
 collision_layer = 32
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DamageArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DamageArea" unique_id=419460596]
 shape = SubResource("CircleShape2D_enemy")

@@ -36,8 +36,8 @@ func _process(delta: float) -> void:
 	if not enemies_container:
 		return
 
-	# 清理超出范围的敌人
-	_cleanup_distant_enemies()
+	## 清理超出范围的敌人
+	#_cleanup_distant_enemies()
 
 	# 同屏上限检查
 	if enemies_container.get_child_count() >= MAX_ENEMIES:
@@ -58,18 +58,22 @@ func get_spawn_rate() -> float:
 	return min(1.0 + t / 20.0, 10.0)
 
 
-## 获取当前时间下的敌人属性
-func get_enemy_stats(t: float) -> Dictionary:
+## 获取当前玩家等级下的敌人属性
+## 敌人强度随玩家等级（升级次数）提升，与游戏时间解耦。
+## level 从 1 开始，故用 (level - 1) 作为升级次数系数，
+## 保证开局(Lv.1)与原时间公式在 t=0 时一致。
+func get_enemy_stats() -> Dictionary:
+	var ups := upgrade_manager.level - 1  # 已升级次数
 	return {
-		"hp": 8.0 + t * 0.5,
-		"speed": 60.0 + t * 0.3,
-		"damage": int(5 + t * 0.1),
+		"hp": 8.0 + ups * 4.0,
+		"speed": 60.0 + ups * 3.0,
+		"damage": int(5 + ups * 0.6),
 	}
 
 
 ## 生成一个敌人
 func _spawn_one_enemy() -> void:
-	var stats := get_enemy_stats(game_manager.game_time)
+	var stats := get_enemy_stats()
 	var pos := get_spawn_position(current_direction)
 
 	var enemy: CharacterBody2D = enemy_scene.instantiate()
@@ -120,13 +124,13 @@ func get_spawn_position(direction: int) -> Vector2:
 			return camera_pos + Vector2(500, 0)
 
 
-## 清理距离玩家过远的敌人
-func _cleanup_distant_enemies() -> void:
-	if not game_manager.player:
-		return
-	for child in enemies_container.get_children():
-		if child.global_position.distance_to(game_manager.player.global_position) > 2000.0:
-			child.queue_free()
+### 清理距离玩家过远的敌人
+#func _cleanup_distant_enemies() -> void:
+	#if not game_manager.player:
+		#return
+	#for child in enemies_container.get_children():
+		#if child.global_position.distance_to(game_manager.player.global_position) > 2000.0:
+			#child.queue_free()
 
 
 ## 敌人死亡回调 → 掉落 XP 宝石
