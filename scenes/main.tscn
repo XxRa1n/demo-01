@@ -1,11 +1,10 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene format=3 uid="uid://d1l6u5qpt1h3s"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="Script" uid="uid://i5ijpcmvgmxh" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://ui/level_up_panel.tscn" id="4_lvlup"]
 [ext_resource type="PackedScene" path="res://ui/game_over_panel.tscn" id="5_gameover"]
-[ext_resource type="Texture2D" path="res://art/grid.png" id="6_grid"]
+[ext_resource type="Texture2D" uid="uid://cjm5g8wqjsq87" path="res://art/grid.png" id="6_grid"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(2040, 40)
@@ -13,58 +12,58 @@ size = Vector2(2040, 40)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vwall"]
 size = Vector2(40, 2040)
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=642029053]
 script = ExtResource("1_main")
 
-[node name="GameWorld" type="Node2D" parent="."]
+[node name="GameWorld" type="Node2D" parent="." unique_id=1141649706]
 
-[node name="Ground" type="Polygon2D" parent="GameWorld"]
+[node name="Ground" type="Polygon2D" parent="GameWorld" unique_id=878161129]
 texture = ExtResource("6_grid")
-uv = PackedVector2Array(0, 0, 1, 0, 1, 1, 0, 1)
 polygon = PackedVector2Array(0, 0, 2000, 0, 2000, 2000, 0, 2000)
+uv = PackedVector2Array(0, 0, 2000, 0, 2000, 2000, 0, 2000)
 
-[node name="WallTop" type="StaticBody2D" parent="GameWorld"]
+[node name="WallTop" type="StaticBody2D" parent="GameWorld" unique_id=867514287]
 position = Vector2(1000, -20)
 collision_layer = 64
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallTop" unique_id=1711013646]
 shape = SubResource("RectangleShape2D_hwall")
 
-[node name="WallBottom" type="StaticBody2D" parent="GameWorld"]
+[node name="WallBottom" type="StaticBody2D" parent="GameWorld" unique_id=272725844]
 position = Vector2(1000, 2020)
 collision_layer = 64
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallBottom" unique_id=142193432]
 shape = SubResource("RectangleShape2D_hwall")
 
-[node name="WallLeft" type="StaticBody2D" parent="GameWorld"]
+[node name="WallLeft" type="StaticBody2D" parent="GameWorld" unique_id=527735626]
 position = Vector2(-20, 1000)
 collision_layer = 64
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallLeft" unique_id=865262953]
 shape = SubResource("RectangleShape2D_vwall")
 
-[node name="WallRight" type="StaticBody2D" parent="GameWorld"]
+[node name="WallRight" type="StaticBody2D" parent="GameWorld" unique_id=95171213]
 position = Vector2(2020, 1000)
 collision_layer = 64
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GameWorld/WallRight" unique_id=816789129]
 shape = SubResource("RectangleShape2D_vwall")
 
-[node name="Enemies" type="Node2D" parent="GameWorld"]
+[node name="Enemies" type="Node2D" parent="GameWorld" unique_id=1082476744]
 
-[node name="Projectiles" type="Node2D" parent="GameWorld"]
+[node name="Projectiles" type="Node2D" parent="GameWorld" unique_id=1490178462]
 
-[node name="XPGems" type="Node2D" parent="GameWorld"]
+[node name="XPGems" type="Node2D" parent="GameWorld" unique_id=325326239]
 
-[node name="UILayer" type="CanvasLayer" parent="."]
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1961436201]
 
-[node name="HUD" parent="UILayer" instance=ExtResource("3_hud")]
+[node name="HUD" parent="UILayer" unique_id=703711545 instance=ExtResource("3_hud")]
 
-[node name="LevelUpPanel" parent="UILayer" instance=ExtResource("4_lvlup")]
+[node name="LevelUpPanel" parent="UILayer" unique_id=1662263885 instance=ExtResource("4_lvlup")]
 
-[node name="GameOverPanel" parent="UILayer" instance=ExtResource("5_gameover")]
+[node name="GameOverPanel" parent="UILayer" unique_id=1849041351 instance=ExtResource("5_gameover")]
