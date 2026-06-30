@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://ui/level_up_panel.tscn" id="4_lvlup"]
 [ext_resource type="PackedScene" path="res://ui/game_over_panel.tscn" id="5_gameover"]
+[ext_resource type="Texture2D" path="res://art/grid.png" id="6_grid"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hwall"]
 size = Vector2(2040, 40)
@@ -18,7 +19,8 @@ script = ExtResource("1_main")
 [node name="GameWorld" type="Node2D" parent="."]
 
 [node name="Ground" type="Polygon2D" parent="GameWorld"]
-color = Color(0.18, 0.32, 0.18, 1)
+texture = ExtResource("6_grid")
+uv = PackedVector2Array(0, 0, 1, 0, 1, 1, 0, 1)
 polygon = PackedVector2Array(0, 0, 2000, 0, 2000, 2000, 0, 2000)
 
 [node name="WallTop" type="StaticBody2D" parent="GameWorld"]

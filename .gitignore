@@ -32,3 +32,6 @@ desktop.ini
 
 # Claude Code
 .claude/
+
+# Understand-anything analysis output (regeneratable)
+.understand-anything/
