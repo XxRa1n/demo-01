@@ -20,6 +20,7 @@ signal died()
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var pickup_area: Area2D = $PickupArea
+@onready var camera: Camera2D = $Camera2D
 
 
 func _ready() -> void:
@@ -30,6 +31,11 @@ func _ready() -> void:
 	sprite.texture = ImageTexture.create_from_image(img)
 	# 玩家出生在地图中心
 	global_position = game_manager.MAP_CENTER
+	# 限制镜头不超出地图边界
+	camera.limit_left = 0
+	camera.limit_top = 0
+	camera.limit_right = game_manager.MAP_SIZE.x
+	camera.limit_bottom = game_manager.MAP_SIZE.y
 
 
 func _physics_process(delta: float) -> void:
