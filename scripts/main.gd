@@ -15,3 +15,4 @@ func _ready() -> void:
 	# 等待玩家 ready 后连接信号
 	await get_tree().process_frame
 	player.damaged.connect(hud._on_player_damaged)
+	game_manager.game_started.emit()  # 触发首次武器选择面板

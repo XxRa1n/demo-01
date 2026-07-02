@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://effects/orbit_blade.gd" id="1_blade"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_blade"]
+radius = 10.0
+
+[node name="OrbitBlade" type="Area2D"]
+collision_layer = 4
+collision_mask = 2
+monitoring = true
+script = ExtResource("1_blade")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_blade")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]

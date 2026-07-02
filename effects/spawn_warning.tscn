@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://effects/spawn_warning.gd" id="1_warn"]
+
+[node name="SpawnWarning" type="Node2D"]
+script = ExtResource("1_warn")

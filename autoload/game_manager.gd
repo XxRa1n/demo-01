@@ -19,6 +19,7 @@ const MAP_CENTER: Vector2 = Vector2(1000.0, 1000.0)
 signal time_tick(delta: float)
 signal kill_counted()
 signal game_ended(won: bool)
+signal game_started()  # 游戏开始（player 就绪后）→ 触发首次武器选择
 
 
 func _process(delta: float) -> void:
