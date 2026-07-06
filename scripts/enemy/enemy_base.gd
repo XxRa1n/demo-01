@@ -1,16 +1,23 @@
+class_name EnemyBase
 extends CharacterBody2D
 
-## 敌人原型标识（由 spawner 设置）
-var kind: StringName = &"normal"
+## 敌人基类：所有敌人共用的逻辑（朝玩家移动 / 软分离防重叠 / 击退 / 受击 / 血条 / 死亡）。
+##
+## 子类只需声明自己的数值（见 _get_config），数值差异不必再写任何代码。
+## 需要独特「行为」的子类可覆盖两个钩子：
+##   - _get_seek_dir：朝玩家的位移方向（基类默认「直冲」）
+##   - _tick_behavior：每帧额外行为（基类默认空）
+## 例如远程兵 enemy_shooter 覆盖这两者实现「风筝走位 + 周期开火」，
+## 其风筝 / 射击代码全部收在 enemy_shooter.gd 里，基类不掺和远程逻辑。
 
-## 敌人属性（由 spawner 设置）
+## 敌人属性（setup 时据子类配置 + 难度缩放写入）
 var enemy_hp: float = 8.0
 var enemy_max_hp: float = 8.0
 var enemy_speed: float = 60.0
 var contact_damage: int = 5
 var is_dead: bool = false
 
-## 外观 / 碰撞（由 setup 写入，_ready 读取）
+## 外观 / 碰撞（setup 写入，_ready 读取）
 var color: Color = Color(0.85, 0.2, 0.2)
 var sprite_size: int = 24
 var collision_radius: float = 12.0
@@ -25,21 +32,9 @@ const SEPARATION_WEIGHT: float = 1.0  # 推开强度系数（乘到速度上）
 const SEPARATION_MAX_NEIGHBORS: int = 16  # 单次查询最多考虑的邻居数（控成本）
 const SEPARATION_MAX_FORCE: float = 1.5  # 分离合力上限（保留大小信息、防超调抖动）
 const STEER_SMOOTHING: float = 8.0  # 速度平滑系数（越大越跟手、越小越平滑）
-var separation_radius: float = 24.0  # 开始排斥的距离（由原型配置）
+var separation_radius: float = 24.0  # 开始排斥的距离（由配置写入）
 var _sep_shape: CircleShape2D
 var _sep_params: PhysicsShapeQueryParameters2D
-
-## 远程开火（由 shooter 原型启用）：风筝走位 + 周期发射大慢子弹
-var can_shoot: bool = false
-var shoot_interval: float = 2.0
-var shoot_range: float = 400.0
-var preferred_range: float = 250.0
-var proj_speed: float = 130.0
-var proj_damage: int = 10
-var proj_radius: float = 14.0
-var _shoot_timer: float = 0.0
-var _projectiles_container: Node2D = null
-const enemy_projectile_scene: PackedScene = preload("res://effects/enemy_projectile.tscn")
 
 ## 击退（由爆炸类武器施加，独立于 seek/avoid 的瞬时速度脉冲）
 const KNOCKBACK_DECAY: float = 6.0  # 衰减系数（越大击退消失越快）
@@ -58,7 +53,7 @@ func _ready() -> void:
 	img.fill(color)
 	sprite.texture = ImageTexture.create_from_image(img)
 
-	# body 碰撞：新建独立 shape（enemy.tscn 里 body 与 DamageArea 共用同一子资源，
+	# body 碰撞：新建独立 shape（场景里 body 与 DamageArea 共用同一子资源，
 	# 不能原地改 radius，否则会把两者的碰撞范围耦合在一起）
 	var body_shape := CircleShape2D.new()
 	body_shape.radius = collision_radius
@@ -80,36 +75,31 @@ func _ready() -> void:
 	# 连接伤害区检测（碰到玩家 CharacterBody2D）
 	damage_area.body_entered.connect(_on_damage_body_entered)
 
-	# 远程敌人复用的子弹容器（仅 shooter 会用到）
-	_projectiles_container = get_node_or_null("/root/Main/GameWorld/Projectiles")
-
 	queue_redraw()
 
 
-## 由 spawner 调用：传入原型配置字典 + 时间难度缩放
-func setup(p_kind: StringName, p_config: Dictionary, p_stat_scale: float = 1.0) -> void:
-	kind = p_kind
-	enemy_max_hp = p_config.get("hp", 8.0) * p_stat_scale
+## 由 spawner 调用：读取子类配置 + 时间难度缩放。
+## 子类通过覆盖 _get_config() 提供自己的数值（单一数据源写在各自文件里）。
+func setup(p_stat_scale: float = 1.0) -> void:
+	var c: Dictionary = _get_config()
+	enemy_max_hp = float(c.get("hp", 8.0)) * p_stat_scale
 	enemy_hp = enemy_max_hp
-	enemy_speed = p_config.get("speed", 60.0)  # 速度不缩放，保持放风筝手感
-	contact_damage = int(round(p_config.get("damage", 5) * p_stat_scale))
-	color = p_config.get("color", Color(0.85, 0.2, 0.2))
-	sprite_size = p_config.get("sprite_size", 24)
-	collision_radius = p_config.get("collision_radius", 12.0)
-	damage_area_radius = p_config.get("damage_area_radius", 12.0)
-	show_hp_bar = p_config.get("show_hp_bar", false)
-	xp_drop = p_config.get("xp_drop", 1)
-	separation_radius = p_config.get("separation_radius", float(sprite_size))
+	enemy_speed = float(c.get("speed", 60.0))  # 速度不缩放，保持走位手感
+	contact_damage = int(round(float(c.get("damage", 5)) * p_stat_scale))
+	color = c.get("color", Color(0.85, 0.2, 0.2))
+	sprite_size = int(c.get("sprite_size", 24))
+	collision_radius = float(c.get("collision_radius", 12.0))
+	damage_area_radius = float(c.get("damage_area_radius", 12.0))
+	show_hp_bar = bool(c.get("show_hp_bar", false))
+	xp_drop = int(c.get("xp_drop", 1))
+	separation_radius = float(c.get("separation_radius", float(sprite_size)))
 
-	# 远程开火参数（仅 shooter 原型启用）
-	can_shoot = p_config.get("can_shoot", false)
-	shoot_interval = p_config.get("shoot_interval", 2.0)
-	shoot_range = p_config.get("shoot_range", 400.0)
-	preferred_range = p_config.get("preferred_range", 250.0)
-	proj_speed = p_config.get("proj_speed", 130.0)
-	proj_damage = int(round(p_config.get("proj_damage", 10) * p_stat_scale))  # 随波次缩放
-	proj_radius = p_config.get("proj_radius", 14.0)
-	_shoot_timer = p_config.get("first_shot_delay", 0.5)
+	# 远程 / 特殊参数由需要它的子类在覆盖 setup 时自行读取（见 enemy_shooter.gd）
+
+
+## 子类覆盖：返回本敌人的数值字典（单一数据源）。
+func _get_config() -> Dictionary:
+	return {}
 
 
 func _physics_process(delta: float) -> void:
@@ -121,12 +111,8 @@ func _physics_process(delta: float) -> void:
 	var to_player := game_manager.player.global_position - global_position
 	var dist := to_player.length()
 
-	# 朝玩家移动；远程敌人（shooter）进入 preferred_range 后改为后撤，保持射程（风筝）
-	var seek_dir := Vector2.RIGHT
-	if dist > 0.001:
-		seek_dir = to_player.normalized()
-		if can_shoot and dist < preferred_range:
-			seek_dir = -seek_dir
+	# 朝玩家的位移方向（远程兵覆盖为风筝）
+	var seek_dir := _get_seek_dir(to_player, dist)
 	var seek := seek_dir * enemy_speed
 	# 软分离：避开附近敌人，防止全部叠到玩家身上
 	var avoid := _compute_separation() * enemy_speed * SEPARATION_WEIGHT
@@ -144,25 +130,20 @@ func _physics_process(delta: float) -> void:
 	var kdecay := 1.0 - exp(-KNOCKBACK_DECAY * delta)
 	knockback_velocity = knockback_velocity.lerp(Vector2.ZERO, kdecay)
 
-	# 远程敌人周期开火：进入射程且计时到点时，朝玩家发射大而慢的子弹
-	if can_shoot:
-		_shoot_timer -= delta
-		if _shoot_timer <= 0.0 and dist <= shoot_range:
-			_shoot_timer = shoot_interval
-			var fire_dir := to_player.normalized() if dist > 0.001 else Vector2.RIGHT
-			_fire_projectile(fire_dir)
+	# 每帧额外行为（远程兵覆盖为周期开火）
+	_tick_behavior(delta, dist, to_player)
 
 
-## 远程敌人发射一颗子弹（加入 Projectiles 容器，与玩家子弹同池）
-func _fire_projectile(dir: Vector2) -> void:
-	if not is_instance_valid(_projectiles_container):
-		_projectiles_container = get_node_or_null("/root/Main/GameWorld/Projectiles")
-	if not is_instance_valid(_projectiles_container):
-		return
-	var proj: Area2D = enemy_projectile_scene.instantiate()
-	proj.setup(proj_damage, proj_speed, dir, proj_radius)
-	proj.global_position = global_position
-	_projectiles_container.add_child(proj)
+## 朝玩家的位移方向。基类默认直冲玩家；远程兵覆盖为「太近则后撤（风筝）」。
+func _get_seek_dir(to_player: Vector2, dist: float) -> Vector2:
+	if dist <= 0.001:
+		return Vector2.RIGHT
+	return to_player.normalized()
+
+
+## 每帧行为钩子。基类空实现；远程兵覆盖为倒计时 + 发射子弹。
+func _tick_behavior(_delta: float, _dist: float, _to_player: Vector2) -> void:
+	pass
 
 
 ## 软分离向量：远离 separation_radius 内的其它敌人。
@@ -194,7 +175,7 @@ func _compute_separation() -> Vector2:
 	return steer
 
 
-## 血条：仅在 tank/boss 且 hp<max 时画在 sprite 上方
+## 血条：仅在 show_hp_bar 且 hp<max 时画在 sprite 上方
 func _draw() -> void:
 	if not show_hp_bar or is_dead or enemy_hp >= enemy_max_hp:
 		return

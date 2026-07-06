@@ -64,4 +64,4 @@ label_settings = SubResource("LabelSettings_stats")
 [node name="RestartButton" type="Button" parent="CenterContainer/VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(180, 50)
-text = "Play Again"
+text = "返回标题"

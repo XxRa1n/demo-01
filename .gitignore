@@ -30,6 +30,9 @@ export_presets.cfg
 Thumbs.db
 desktop.ini
 
+# Office / Excel temp lock files
+~$*
+
 # Claude Code
 .claude/
 

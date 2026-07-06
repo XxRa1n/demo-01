@@ -2,6 +2,8 @@ extends Control
 
 ## 游戏结束面板控制器
 
+const ENTRY_SCENE_PATH := "res://scenes/entry.tscn"
+
 @onready var result_label: Label = $CenterContainer/VBox/ResultLabel
 @onready var stats_label: Label = $CenterContainer/VBox/StatsLabel
 @onready var restart_button: Button = $CenterContainer/VBox/RestartButton
@@ -44,7 +46,7 @@ func _on_game_ended(won: bool) -> void:
 
 
 func _on_restart() -> void:
-	# 重置所有全局状态
+	# 重置所有全局状态（返回标题屏后再开新局仍是干净状态）
 	get_tree().paused = false
 	game_manager.is_paused = false
 	game_manager.game_over = false
@@ -57,8 +59,8 @@ func _on_restart() -> void:
 	upgrade_manager.level = 1
 	upgrade_manager.xp_to_next = 8
 
-	# 重置生成器（清空已触发 Boss 波记录、生成累加器），保证第二局 Boss 波能再触发
+	# 重置生成器（清空已触发 Boss 波记录、生成累加器），保证下一局 Boss 波能再触发
 	enemy_spawner.reset()
 
-	# 重新加载场景
-	get_tree().reload_current_scene()
+	# 返回标题屏（而非直接重开）：玩家从 entry 重新进入对局
+	get_tree().change_scene_to_file(ENTRY_SCENE_PATH)

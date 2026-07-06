@@ -8,44 +8,25 @@ const DEFAULT_WARN: float = 0.6  # 普通敌人生成预警时长（秒）
 const BOSS_WARN: float = 1.0  # Boss 生成预警时长（秒，给玩家更多反应时间）
 const BURST_MAX_CAP: int = 12  # 单次成簇生成的敌人数量上限（原 8）
 
-# ─── 敌人原型 ──────────────────────────────────────────────────────
-# 字段：hp, speed, damage, color, sprite_size, collision_radius,
-#       damage_area_radius, xp_drop, show_hp_bar, separation_radius
-const ARCHETYPES: Dictionary = {
-	&"swarmer": {
-		"hp": 3.0, "speed": 110.0, "damage": 3,
-		"color": Color(0.9, 0.5, 0.2), "sprite_size": 14,
-		"collision_radius": 7.0, "damage_area_radius": 8.0,
-		"xp_drop": 1, "show_hp_bar": false, "separation_radius": 18.0,
-	},
-	&"normal": {
-		"hp": 10.0, "speed": 60.0, "damage": 6,
-		"color": Color(0.85, 0.2, 0.2), "sprite_size": 24,
-		"collision_radius": 12.0, "damage_area_radius": 12.0,
-		"xp_drop": 1, "show_hp_bar": false, "separation_radius": 28.0,
-	},
-	&"tank": {
-		"hp": 55.0, "speed": 35.0, "damage": 12,
-		"color": Color(0.35, 0.35, 0.45), "sprite_size": 40,
-		"collision_radius": 20.0, "damage_area_radius": 22.0,
-		"xp_drop": 5, "show_hp_bar": true, "separation_radius": 44.0,
-	},
-	&"shooter": {
-		"hp": 14.0, "speed": 50.0, "damage": 6,
-		"color": Color(0.2, 0.75, 0.95), "sprite_size": 22,
-		"collision_radius": 11.0, "damage_area_radius": 12.0,
-		"xp_drop": 2, "show_hp_bar": false, "separation_radius": 26.0,
-		# 远程：风筝走位 + 周期发射大慢子弹（子弹伤害随 stat_scale 缩放）
-		"can_shoot": true, "shoot_interval": 2.4, "shoot_range": 460.0,
-		"preferred_range": 280.0, "proj_speed": 130.0, "proj_damage": 10,
-		"proj_radius": 14.0, "first_shot_delay": 0.8,
-	},
-	&"boss": {
-		"hp": 600.0, "speed": 28.0, "damage": 25,
-		"color": Color(0.55, 0.1, 0.7), "sprite_size": 72,
-		"collision_radius": 38.0, "damage_area_radius": 42.0,
-		"xp_drop": 50, "show_hp_bar": true, "separation_radius": 80.0,
-	},
+# ─── 敌人注册表 ────────────────────────────────────────────────────
+# 每种敌人 = 一个独立场景 + 一个独立脚本（脚本里的 const CONFIG 是该敌人的单一数据源）。
+#   KIND_SCENES ：实例化用（每种敌人一个 .tscn）
+#   KIND_SCRIPTS：读 CONFIG 给「生成预警」用（颜色/尺寸，敌人尚未实例化）
+# 想加新敌人：写 enemy_xxx.gd（extends EnemyBase + const CONFIG）+ enemy_xxx.tscn，
+# 再在两张表各加一行即可，本文件其它逻辑（波次/burst/预警）全部不动。
+const KIND_SCENES: Dictionary = {
+	&"swarmer": preload("res://scenes/enemy_swarmer.tscn"),
+	&"normal": preload("res://scenes/enemy_normal.tscn"),
+	&"tank": preload("res://scenes/enemy_tank.tscn"),
+	&"shooter": preload("res://scenes/enemy_shooter.tscn"),
+	&"boss": preload("res://scenes/enemy_boss.tscn"),
+}
+const KIND_SCRIPTS: Dictionary = {
+	&"swarmer": preload("res://scripts/enemy/enemy_swarmer.gd"),
+	&"normal": preload("res://scripts/enemy/enemy_normal.gd"),
+	&"tank": preload("res://scripts/enemy/enemy_tank.gd"),
+	&"shooter": preload("res://scripts/enemy/enemy_shooter.gd"),
+	&"boss": preload("res://scripts/enemy/enemy_boss.gd"),
 }
 
 # ─── 波次时间表（按已过分钟激活）──────────────────────────────────
@@ -54,19 +35,19 @@ const ARCHETYPES: Dictionary = {
 # 注意：boss 永不进 eligible，只由 BOSS_WAVES 强制生成。
 const WAVES: Array = [
 	{"start_min": 0.0, "eligible": [&"swarmer", &"normal"], "weights": [3, 2], "rate_mult": 1.0, "stat_scale": 1.0},
-	{"start_min": 1.0, "eligible": [&"swarmer", &"normal"], "weights": [2, 3], "rate_mult": 1.4, "stat_scale": 1.0},
-	{"start_min": 3.0, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [2, 4, 1, 1], "rate_mult": 1.8, "stat_scale": 1.05},
-	{"start_min": 5.0, "eligible": [&"normal", &"tank", &"shooter"], "weights": [3, 2, 1], "rate_mult": 2.3, "stat_scale": 1.15},
-	{"start_min": 7.0, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [3, 3, 2, 2], "rate_mult": 2.8, "stat_scale": 1.25},
-	{"start_min": 9.0, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [4, 3, 3, 2], "rate_mult": 3.4, "stat_scale": 1.4},
+	{"start_min": 0.5, "eligible": [&"swarmer", &"normal"], "weights": [2, 3], "rate_mult": 1.4, "stat_scale": 1.0},
+	{"start_min": 1.0, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [2, 4, 1, 1], "rate_mult": 1.8, "stat_scale": 1.05},
+	{"start_min": 1.5, "eligible": [&"normal", &"tank", &"shooter"], "weights": [3, 2, 1], "rate_mult": 2.3, "stat_scale": 1.15},
+	{"start_min": 2.0, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [3, 3, 2, 2], "rate_mult": 2.8, "stat_scale": 1.25},
+	{"start_min": 2.5, "eligible": [&"swarmer", &"normal", &"tank", &"shooter"], "weights": [4, 3, 3, 2], "rate_mult": 3.4, "stat_scale": 1.4},
 ]
 
 # ─── 一次性 Boss 波 ───────────────────────────────────────────────
 # trigger_min(分钟) 到点触发一次：boss_count 个 boss + escort_kind×escort_count 护卫。
 const BOSS_WAVES: Array = [
-	{"trigger_min": 3.0, "boss_count": 1, "escort_kind": &"swarmer", "escort_count": 12},
-	{"trigger_min": 5.0, "boss_count": 1, "escort_kind": &"normal", "escort_count": 10},
-	{"trigger_min": 8.0, "boss_count": 2, "escort_kind": &"tank", "escort_count": 4},
+	{"trigger_min": 1.0, "boss_count": 1, "escort_kind": &"swarmer", "escort_count": 12},
+	{"trigger_min": 2.0, "boss_count": 1, "escort_kind": &"normal", "escort_count": 10},
+	{"trigger_min": 3.0, "boss_count": 2, "escort_kind": &"tank", "escort_count": 4},
 ]
 
 ## 生成状态
@@ -78,7 +59,6 @@ var enemies_container: Node2D = null
 var xp_gems_container: Node2D = null
 
 ## 场景引用
-var enemy_scene: PackedScene
 var xp_gem_scene: PackedScene
 var spawn_warning_scene: PackedScene
 
@@ -87,7 +67,6 @@ var _warnings_container: Node2D = null
 
 
 func _ready() -> void:
-	enemy_scene = preload("res://scenes/enemy.tscn")
 	xp_gem_scene = preload("res://effects/xp_gem.tscn")
 	spawn_warning_scene = preload("res://effects/spawn_warning.tscn")
 	# 等待 main 场景准备好
@@ -222,12 +201,13 @@ func _get_burst_positions(count: int) -> Array:
 	return positions
 
 
-## 公共生成逻辑：在指定位置生成指定原型敌人（受同屏上限约束）
-func _spawn_at(kind: StringName, config: Dictionary, stat_scale: float, pos: Vector2) -> void:
+## 公共生成逻辑：在指定位置生成指定类型敌人（受同屏上限约束）。
+## config 不再传入：敌人自己的数值由其脚本 const CONFIG 提供，这里只传难度缩放。
+func _spawn_at(kind: StringName, stat_scale: float, pos: Vector2) -> void:
 	if enemies_container.get_child_count() >= MAX_ENEMIES:
 		return
-	var enemy: CharacterBody2D = enemy_scene.instantiate()
-	enemy.setup(kind, config, stat_scale)  # 必须在 add_child 前调用，_ready 才能读到配置
+	var enemy: CharacterBody2D = KIND_SCENES[kind].instantiate()
+	enemy.setup(stat_scale)  # 必须在 add_child 前调用，_ready 才能读到配置
 	enemy.global_position = pos
 	enemy.enemy_died.connect(_on_enemy_died)
 	enemies_container.add_child(enemy)
@@ -239,7 +219,7 @@ func _spawn_a_burst(count: int) -> void:
 	var stat_scale: float = _current_wave().get("stat_scale", 1.0)
 	for pos in _get_burst_positions(count):
 		var kind: StringName = _pick_archetype()
-		_schedule_spawn(kind, ARCHETYPES[kind], stat_scale, pos, DEFAULT_WARN)
+		_schedule_spawn(kind, KIND_SCRIPTS[kind].CONFIG, stat_scale, pos, DEFAULT_WARN)
 
 
 ## 预约一次生成：先在目标位置播放预警动画，动画结束时回调真正生成敌人。
@@ -273,7 +253,7 @@ func _get_warnings_container() -> Node2D:
 func _on_warning_finished(warn: Node2D) -> void:
 	if not is_instance_valid(warn):
 		return
-	_spawn_at(warn.spawn_kind, warn.spawn_config, warn.spawn_stat_scale, warn.global_position)
+	_spawn_at(warn.spawn_kind, warn.spawn_stat_scale, warn.global_position)
 
 
 ## 每帧检查并触发到点的 Boss 波（每条只触发一次）
@@ -299,9 +279,9 @@ func _trigger_boss_wave(wave: Dictionary) -> void:
 	var anchor := get_spawn_position_ring()
 	for _b in boss_count:
 		var offset := Vector2(randf_range(-40.0, 40.0), randf_range(-40.0, 40.0))
-		_schedule_spawn(&"boss", ARCHETYPES[&"boss"], stat_scale, anchor + offset, BOSS_WARN)
+		_schedule_spawn(&"boss", KIND_SCRIPTS[&"boss"].CONFIG, stat_scale, anchor + offset, BOSS_WARN)
 	for _e in escort_count:
-		_schedule_spawn(escort_kind, ARCHETYPES[escort_kind], stat_scale, get_spawn_position_ring(), DEFAULT_WARN)
+		_schedule_spawn(escort_kind, KIND_SCRIPTS[escort_kind].CONFIG, stat_scale, get_spawn_position_ring(), DEFAULT_WARN)
 
 
 ## 敌人死亡回调 → 按原型掉落多颗 XP 宝石

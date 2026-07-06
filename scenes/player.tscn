@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://cqdemwf0ae0fc"]
 
-[ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="script_player"]
+[ext_resource type="Script" uid="uid://bumj832tdj042" path="res://scripts/player/player_controller.gd" id="script_player"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 16.0
@@ -8,23 +8,23 @@ radius = 16.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
 radius = 30.0
 
-[node name="Player" type="CharacterBody2D"]
-collision_layer = 1
+[node name="Player" type="CharacterBody2D" unique_id=1513336312]
 collision_mask = 64
 script = ExtResource("script_player")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2035817210]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1112635436]
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1124072451]
+zoom = Vector2(0.7, 0.7)
 position_smoothing_enabled = true
 position_smoothing_speed = 10.0
 
-[node name="PickupArea" type="Area2D" parent="."]
+[node name="PickupArea" type="Area2D" parent="." unique_id=1720662528]
 collision_layer = 16
 collision_mask = 8
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PickupArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PickupArea" unique_id=1466230080]
 shape = SubResource("CircleShape2D_pickup")
