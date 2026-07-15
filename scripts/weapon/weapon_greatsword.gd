@@ -39,6 +39,7 @@ func _fire() -> void:
 	var lv := get_current_level_data()
 	var s := Slash.new()
 	s.setup(float(lv["radius"]), float(lv["arc"]), _calc_damage(float(lv["dmg"])), float(lv["knockback"]), facing)
+	s.element = _gem_element()
 	s.source_weapon = self
 	s.global_position = game_manager.player.global_position
 	projectiles_container.add_child(s)

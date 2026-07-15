@@ -17,6 +17,13 @@ var crit_damage_mult: float = 1.5    # 暴击伤害倍率（暴击时 amt × 此
 var lifesteal_pct: float = 0.0       # 吸血比例（造成伤害时按此回血）
 var execute_enabled: bool = false    # 是否开启斩杀（低血敌人直接秒杀）
 
+## 宝石驱动的开关 / 嗜血运行态（由 gem_registry + kill_tracker 读写）
+var bloodlust_enabled: bool = false
+var bloodlust_active: bool = false
+var bloodlust_timer: float = 0.0
+var kill_atk_enabled: bool = false
+var kill_atkspd_enabled: bool = false
+
 ## 无敌帧
 var is_invincible: bool = false
 var invincible_timer: float = 0.0
@@ -105,6 +112,24 @@ func heal(amount: int) -> void:
 		return
 	hp = min(hp + amount, max_hp)
 	damaged.emit(hp, max_hp)
+
+
+## 嗜血激活（kill_tracker 调用）：+20%攻击 / +10%攻速 / +10%移速，持续 duration 秒；重复触发刷新时长不叠层。
+func activate_bloodlust(duration: float) -> void:
+	if not bloodlust_active:
+		bloodlust_active = true
+		might *= 1.2
+		cooldown_mult *= (1.0 / 1.1)  # +10% 攻速
+		speed *= 1.1
+	bloodlust_timer = duration
+
+
+func deactivate_bloodlust() -> void:
+	if bloodlust_active:
+		bloodlust_active = false
+		might /= 1.2
+		cooldown_mult /= (1.0 / 1.1)
+		speed /= 1.1
 
 
 # DEBUG（仅调试构建）：数字键 1/2/3 临时授予暴击 / 吸血 / 斩杀，供测试。

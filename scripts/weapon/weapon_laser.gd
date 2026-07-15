@@ -37,7 +37,6 @@ func _fire() -> void:
 	var lv := get_current_level_data()
 	var beam := Beam.new()
 	# DPS 取伤害的 3 倍（持续光束），active 期内总伤 ≈ base×mult×3
-	beam.setup(_calc_damage(float(lv["dmg"])) * 3.0, float(lv["length"]), float(lv["width"]), float(lv["active"]))
-	beam.source_weapon = self
+	beam.setup(_calc_damage(float(lv["dmg"])) * 3.0, float(lv["length"]), float(lv["width"]), float(lv["active"]), _gem_element(), self)
 	beam.global_position = game_manager.player.global_position
 	projectiles_container.add_child(beam)

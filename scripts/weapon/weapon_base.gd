@@ -32,6 +32,12 @@ var _orbit_blades: Array = []
 ## 召唤物缓存（Minion 类武器用：炮台 / 猫 / 龙 / 熊）
 var _minions: Array = []
 
+## 宝石槽：gem_slots[i] = gem_id(StringName) 或 null。max_gem_slots 为可用槽位（基础 1，满级 +2）。
+var gem_slots: Array = []
+var max_gem_slots: int = 1
+## 本帧开火参数缓存（_process 在 _fire 前写入；_fire / 各 helper 读取）
+var _params: Dictionary = {}
+
 
 func _ready() -> void:
 	# 等一帧让 main 场景就绪，再取容器
@@ -53,7 +59,11 @@ func _process(delta: float) -> void:
 	if cooldown_timer <= 0.0:
 		var lv := get_current_level_data()
 		var cd_mult: float = float(lv.get("cd", 1.0))  # 等级成长里的攻速/减cd
-		cooldown_timer = base_cooldown * cd_mult * game_manager.player.cooldown_mult
+		_params = _compute_fire_params()  # 缓存本帧宝石派生参数（元素 / 连击 / 技能cd）
+		var cd := base_cooldown
+		if float(_params.get("cooldown_override", 0.0)) > 0.0:  # 技能cd 宝石：固定冷却 = base - 1
+			cd = float(_params["cooldown_override"])
+		cooldown_timer = cd * cd_mult * game_manager.player.cooldown_mult
 		_fire()
 
 
@@ -87,6 +97,7 @@ func level_up() -> bool:
 	var data := _level_data()
 	if weapon_level >= data.size() - 1:
 		is_max_level = true
+		max_gem_slots += 2  # 满级(L8) 解锁 +2 宝石槽
 	return true
 
 
@@ -124,35 +135,40 @@ func _calc_damage(mult: float = 1.0) -> float:
 
 
 ## 通用：朝最近敌人发射一组扇形扩散的直线子弹（ProjectileBase 类武器共用）。
-## count=1 时无扩散；元素与来源武器随子弹带入 DamageInfo。
+## count=1 时无扩散；元素与来源武器随子弹带入 DamageInfo；连击宝石让整组齐射多次。
 func _fire_seek_spread(scene: PackedScene, count: int, spread: float, speed: float, dmg: float, pierce: int, element: int = DamageInfo.Element.NONE) -> void:
 	var nearest := _find_nearest_enemy()
 	if nearest == null:
 		return
+	var el: int = _gem_element(element)
+	var volleys: int = _gem_attack_count()
 	var base_dir := (nearest.global_position - game_manager.player.global_position).normalized()
 	var start: float = -spread * float(count - 1) / 2.0
-	for i in count:
-		var dir := base_dir.rotated(start + spread * float(i)) if count > 1 else base_dir
-		var proj := scene.instantiate()
-		proj.setup(dmg, speed, dir, pierce, element, self)
-		proj.global_position = game_manager.player.global_position
-		projectiles_container.add_child(proj)
+	for _v in volleys:  # 连击 / 2020 宝石：整组齐射多次
+		for i in count:
+			var dir := base_dir.rotated(start + spread * float(i)) if count > 1 else base_dir
+			var proj := scene.instantiate()
+			proj.setup(dmg, speed, dir, pierce, el, self)
+			proj.global_position = game_manager.player.global_position
+			projectiles_container.add_child(proj)
 
 
-## 通用：朝最近敌人发射一枚爆炸弹（LocatedBase 类武器共用）。
+## 通用：朝最近敌人发射一枚爆炸弹（LocatedBase 类武器共用）。连击宝石多发齐投。
 func _fire_lob(scene: PackedScene, speed: float, dmg: float, blast: float, knockback: float) -> void:
 	var nearest := _find_nearest_enemy()
 	if nearest == null:
 		return
+	var el: int = _gem_element()
+	var volleys: int = _gem_attack_count()
 	var dir := (nearest.global_position - game_manager.player.global_position).normalized()
-	var proj := scene.instantiate()
-	proj.setup(dmg, speed, dir, blast, knockback)
-	proj.source_weapon = self
-	proj.global_position = game_manager.player.global_position
-	projectiles_container.add_child(proj)
+	for _v in volleys:
+		var proj := scene.instantiate()
+		proj.setup(dmg, speed, dir, blast, knockback, el, self)
+		proj.global_position = game_manager.player.global_position
+		projectiles_container.add_child(proj)
 
 
-## 通用：维持 N 个环绕实体（OrbitEntity 类武器共用）。幂等同步数量与参数。
+## 通用：维持 N 个环绕实体（OrbitEntity 类武器共用）。幂等同步数量与参数；元素取自宝石。
 func _sync_orbit_blades(blade_scene: PackedScene, count: int, radius: float, speed: float, dmg: float, element: int = DamageInfo.Element.NONE) -> void:
 	if not is_instance_valid(projectiles_container):
 		return
@@ -164,9 +180,10 @@ func _sync_orbit_blades(blade_scene: PackedScene, count: int, radius: float, spe
 		var extra = _orbit_blades.pop_back()
 		if is_instance_valid(extra):
 			extra.queue_free()
+	var el: int = _gem_element(element)
 	for i in _orbit_blades.size():
 		var base_angle: float = (float(i) / float(max(_orbit_blades.size(), 1))) * TAU
-		_orbit_blades[i].set_params(radius, speed, base_angle, dmg, element, self)
+		_orbit_blades[i].set_params(radius, speed, base_angle, dmg, el, self)
 
 
 ## 通用：维持 N 个召唤物（Minion 类武器共用）。幂等同步数量；setup_fn 负责逐个配置（含 base_angle）。
@@ -185,3 +202,88 @@ func _sync_minions(factory: Callable, count: int, setup_fn: Callable) -> void:
 	var n: int = max(_minions.size(), 1)
 	for i in _minions.size():
 		setup_fn.call(_minions[i], i, n)
+
+
+# ─── 宝石系统 ─────────────────────────────────────────────
+## 由已镶嵌宝石派生的开火参数（连击数 / 元素 / 冷却覆盖 / 击退倍率）。
+func _compute_fire_params() -> Dictionary:
+	var p := {"attack_count": 1, "element": DamageInfo.Element.NONE, "cooldown_override": 0.0, "knockback_mult": 1.0}
+	for gem_id in gem_slots:
+		if gem_id == null:
+			continue
+		match gem_id:
+			&"double_strike", &"2020":
+				p["attack_count"] = int(p["attack_count"]) + 1
+			&"skill_cd":
+				p["cooldown_override"] = maxf(float(p["cooldown_override"]), maxf(base_cooldown - 1.0, 0.2))
+			&"knockback":
+				p["knockback_mult"] = float(p["knockback_mult"]) * 1.5
+			&"fire":
+				p["element"] = DamageInfo.Element.FIRE
+			&"water":
+				p["element"] = DamageInfo.Element.WATER
+			&"ice":
+				p["element"] = DamageInfo.Element.ICE
+			&"lightning":
+				p["element"] = DamageInfo.Element.LIGHTNING
+			&"grass":
+				p["element"] = DamageInfo.Element.GRASS
+	return p
+
+
+## 取本帧宝石派生元素（无宝石时回退 fallback）。
+func _gem_element(fallback: int = DamageInfo.Element.NONE) -> int:
+	if _params.is_empty():
+		return fallback
+	return int(_params.get("element", fallback))
+
+
+## 取本帧宝石派生连击数（无宝石时 1）。
+func _gem_attack_count() -> int:
+	if _params.is_empty():
+		return 1
+	return int(_params.get("attack_count", 1))
+
+
+## 镶嵌宝石到指定槽位（覆盖原有）。全局宝石立即生效到玩家；fire_mod/元素宝石随 _compute_fire_params 生效。
+func socket_gem(slot: int, gem_id: StringName) -> bool:
+	if slot < 0 or slot >= max_gem_slots:
+		return false
+	while gem_slots.size() <= slot:
+		gem_slots.append(null)
+	if gem_slots[slot] != null:
+		_revert_gem(gem_slots[slot])
+	gem_slots[slot] = gem_id
+	_apply_gem(gem_id)
+	return true
+
+
+## 拆下槽位宝石，返回原宝石 id。
+func unsocket_gem(slot: int) -> Variant:
+	if slot < 0 or slot >= gem_slots.size():
+		return null
+	var old = gem_slots[slot]
+	if old != null:
+		_revert_gem(old)
+	gem_slots[slot] = null
+	return old
+
+
+func _apply_gem(gem_id: Variant) -> void:
+	if gem_id == null or game_manager == null or not is_instance_valid(game_manager.player):
+		return
+	var p = game_manager.player
+	if gem_registry.is_global_apply(gem_id):
+		gem_registry.apply_global(gem_id, p)
+	elif gem_registry.is_flag(gem_id):
+		gem_registry.apply_flag(gem_id, p)
+
+
+func _revert_gem(gem_id: Variant) -> void:
+	if gem_id == null or game_manager == null or not is_instance_valid(game_manager.player):
+		return
+	var p = game_manager.player
+	if gem_registry.is_global_apply(gem_id):
+		gem_registry.revert_global(gem_id, p)
+	elif gem_registry.is_flag(gem_id):
+		gem_registry.revert_flag(gem_id, p)

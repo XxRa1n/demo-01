@@ -22,6 +22,8 @@ enemy_spawner="*res://autoload/enemy_spawner.gd"
 upgrade_manager="*res://autoload/upgrade_manager.gd"
 combat_system="*res://autoload/combat_system.gd"
 reaction_engine="*res://autoload/reaction_engine.gd"
+gem_registry="*res://autoload/gem_registry.gd"
+kill_tracker="*res://autoload/kill_tracker.gd"
 
 [input]
 

@@ -37,6 +37,7 @@ func _fire() -> void:
 	var lv := get_current_level_data()
 	var sw := Shockwave.new()
 	sw.setup(float(lv["speed"]), float(lv["radius"]), _calc_damage(float(lv["dmg"])), float(lv["knockback"]))
+	sw.element = _gem_element()
 	sw.source_weapon = self
 	sw.global_position = game_manager.player.global_position
 	projectiles_container.add_child(sw)

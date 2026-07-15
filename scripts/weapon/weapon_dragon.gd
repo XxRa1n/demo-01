@@ -38,6 +38,6 @@ func _fire() -> void:
 	var lv := get_current_level_data()
 	var dmg := _calc_damage(float(lv["dmg"]))
 	_sync_minions(func(): return Minion.new(), int(lv["count"]), func(m, i, n):
-		m.setup(66.0, 2.2, float(lv["range"]), float(lv["interval"]), float(lv["radius"]), dmg, "aoe", Color(0.95, 0.4, 0.3), 18, DamageInfo.Element.FIRE)
+		m.setup(66.0, 2.2, float(lv["range"]), float(lv["interval"]), float(lv["radius"]), dmg, "aoe", Color(0.95, 0.4, 0.3), 18, _gem_element(DamageInfo.Element.FIRE))
 		m.set_base_angle(float(i) / float(n) * TAU)
 	)
