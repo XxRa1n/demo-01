@@ -29,6 +29,9 @@ var projectiles_container: Node2D = null
 ## 环绕实体缓存（OrbitEntity 类武器用：旋转飞斧 / 环绕圣经）
 var _orbit_blades: Array = []
 
+## 召唤物缓存（Minion 类武器用：炮台 / 猫 / 龙 / 熊）
+var _minions: Array = []
+
 
 func _ready() -> void:
 	# 等一帧让 main 场景就绪，再取容器
@@ -164,3 +167,21 @@ func _sync_orbit_blades(blade_scene: PackedScene, count: int, radius: float, spe
 	for i in _orbit_blades.size():
 		var base_angle: float = (float(i) / float(max(_orbit_blades.size(), 1))) * TAU
 		_orbit_blades[i].set_params(radius, speed, base_angle, dmg, element, self)
+
+
+## 通用：维持 N 个召唤物（Minion 类武器共用）。幂等同步数量；setup_fn 负责逐个配置（含 base_angle）。
+## factory: 返回一个新 Minion 实例的 Callable（minion 无 .tscn，用 Minion.new()）。
+func _sync_minions(factory: Callable, count: int, setup_fn: Callable) -> void:
+	if not is_instance_valid(projectiles_container):
+		return
+	while _minions.size() < count:
+		var m = factory.call()
+		projectiles_container.add_child(m)
+		_minions.append(m)
+	while _minions.size() > count:
+		var extra = _minions.pop_back()
+		if is_instance_valid(extra):
+			extra.queue_free()
+	var n: int = max(_minions.size(), 1)
+	for i in _minions.size():
+		setup_fn.call(_minions[i], i, n)
