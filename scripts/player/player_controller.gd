@@ -18,17 +18,15 @@ const INVINCIBLE_DURATION: float = 0.5
 signal damaged(current_hp: int, max_hp: int)
 signal died()
 
-@onready var sprite: Sprite2D = $Sprite2D
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var pickup_area: Area2D = $PickupArea
 @onready var camera: Camera2D = $Camera2D
 
 
 func _ready() -> void:
 	game_manager.register_player(self)
-	# 生成占位纹理（蓝色方块）
-	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0.2, 0.5, 1.0))
-	sprite.texture = ImageTexture.create_from_image(img)
+	# 默认播放向右行走动画（玩家始终朝向最后移动的水平方向）
+	sprite.play("walk_right")
 	# 玩家出生在地图中心
 	global_position = game_manager.MAP_CENTER
 	# 限制镜头不超出地图边界
@@ -61,6 +59,12 @@ func _physics_process(delta: float) -> void:
 
 	velocity = input_dir * speed
 	move_and_slide()
+
+	# 根据水平移动方向切换左右朝向动画（每个动画只有 1 帧，相当于方向指示）
+	if input_dir.x < -0.01 and sprite.animation != &"walk_left":
+		sprite.play("walk_left")
+	elif input_dir.x > 0.01 and sprite.animation != &"walk_right":
+		sprite.play("walk_right")
 
 	# 更新拾取区大小
 	var pickup_shape: CircleShape2D = pickup_area.get_node("CollisionShape2D").shape

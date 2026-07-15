@@ -38,3 +38,10 @@ desktop.ini
 
 # Understand-anything analysis output (regeneratable)
 .understand-anything/
+
+# 美术源/中间产物：源视频、帧打包 zip、抽帧目录与零散 matte 帧（最终贴图入库，源素材留本地）
+*.mp4
+*.zip
+/art/matted_frames/
+/art/matted_frames_2/
+/art/matte_*.png

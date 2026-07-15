@@ -45,8 +45,9 @@ func setup(p_stat_scale: float = 1.0) -> void:
 	proj_damage = int(round(float(c.get("proj_damage", 10)) * p_stat_scale))  # 随波次缩放
 	proj_radius = float(c.get("proj_radius", 14.0))
 	_shoot_timer = float(c.get("first_shot_delay", 0.8))
-	# 子弹容器（与玩家子弹同池），_physics 发射时惰性重取以防场景重载后失效
-	_projectiles_container = get_node_or_null("/root/Main/GameWorld/Projectiles")
+	# 注意：这里不去取 Projectiles 容器。setup() 由生成器在 add_child 之前调用，
+	# 此时敌人尚未进入场景树，用绝对路径 get_node 会报错。容器在 _fire_projectile
+	# 发射时（敌人已在树中）惰性重取即可，见 _fire_projectile。
 
 
 ## 风筝：进入 preferred_range 后改为后撤，保持射程。

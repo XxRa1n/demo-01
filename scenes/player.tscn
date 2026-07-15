@@ -1,12 +1,33 @@
 [gd_scene format=3 uid="uid://cqdemwf0ae0fc"]
 
 [ext_resource type="Script" uid="uid://bumj832tdj042" path="res://scripts/player/player_controller.gd" id="script_player"]
+[ext_resource type="Texture2D" uid="uid://cau4l5gyn4nh1" path="res://art/walk_right.png" id="tex_walk_right"]
+[ext_resource type="Texture2D" uid="uid://w2wlaff7slyj" path="res://art/walk_left.png" id="tex_walk_left"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 16.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
 radius = 30.0
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_player"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("tex_walk_right")
+}],
+"loop": true,
+"name": &"walk_right",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("tex_walk_left")
+}],
+"loop": true,
+"name": &"walk_left",
+"speed": 5.0
+}]
 
 [node name="Player" type="CharacterBody2D" unique_id=1513336312]
 collision_mask = 64
@@ -15,7 +36,10 @@ script = ExtResource("script_player")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2035817210]
 shape = SubResource("CircleShape2D_body")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1112635436]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1112635436]
+sprite_frames = SubResource("SpriteFrames_player")
+animation = &"walk_right"
+scale = Vector2(0.08, 0.08)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1124072451]
 zoom = Vector2(0.7, 0.7)
