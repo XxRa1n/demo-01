@@ -87,6 +87,46 @@ const WEAPON_CATALOG: Array = [
 		"node_name": "WeaponMortar",
 		"icon_color": Color(0.5, 0.5, 0.55),
 	},
+	{
+		"id": &"laser",
+		"display_name": "激光",
+		"desc": "锁定最近敌人的持续光束，按帧 DPS",
+		"script_path": "res://scripts/weapon/weapon_laser.gd",
+		"node_name": "WeaponLaser",
+		"icon_color": Color(0.4, 0.8, 1.0),
+	},
+	{
+		"id": &"sonic",
+		"display_name": "声波",
+		"desc": "360° 扩散环，伤害 + 击退",
+		"script_path": "res://scripts/weapon/weapon_sonic.gd",
+		"node_name": "WeaponSonic",
+		"icon_color": Color(0.8, 0.9, 1.0),
+	},
+	{
+		"id": &"flamethrower",
+		"display_name": "喷火",
+		"desc": "朝最近敌人喷火锥，附燃烧",
+		"script_path": "res://scripts/weapon/weapon_flamethrower.gd",
+		"node_name": "WeaponFlamethrower",
+		"icon_color": Color(1.0, 0.5, 0.2),
+	},
+	{
+		"id": &"spinning_axe",
+		"display_name": "旋转飞斧",
+		"desc": "环绕玩家旋转的持续切割",
+		"script_path": "res://scripts/weapon/weapon_spinning_axe.gd",
+		"node_name": "WeaponSpinningAxe",
+		"icon_color": Color(0.9, 0.7, 0.3),
+	},
+	{
+		"id": &"holy_book",
+		"display_name": "环绕圣经",
+		"desc": "环绕玩家的圣典，持续命中",
+		"script_path": "res://scripts/weapon/weapon_holy_book.gd",
+		"node_name": "WeaponHolyBook",
+		"icon_color": Color(0.95, 0.92, 0.6),
+	},
 ]
 
 ## 信号

@@ -26,6 +26,9 @@ var cooldown_timer: float = 0.0
 ## 子弹容器（惰性获取，仿 enemy_spawner 的 is_instance_valid 模式，重启后重取）
 var projectiles_container: Node2D = null
 
+## 环绕实体缓存（OrbitEntity 类武器用：旋转飞斧 / 环绕圣经）
+var _orbit_blades: Array = []
+
 
 func _ready() -> void:
 	# 等一帧让 main 场景就绪，再取容器
@@ -144,3 +147,20 @@ func _fire_lob(scene: PackedScene, speed: float, dmg: float, blast: float, knock
 	proj.source_weapon = self
 	proj.global_position = game_manager.player.global_position
 	projectiles_container.add_child(proj)
+
+
+## 通用：维持 N 个环绕实体（OrbitEntity 类武器共用）。幂等同步数量与参数。
+func _sync_orbit_blades(blade_scene: PackedScene, count: int, radius: float, speed: float, dmg: float, element: int = DamageInfo.Element.NONE) -> void:
+	if not is_instance_valid(projectiles_container):
+		return
+	while _orbit_blades.size() < count:
+		var b := blade_scene.instantiate()
+		projectiles_container.add_child(b)
+		_orbit_blades.append(b)
+	while _orbit_blades.size() > count:
+		var extra = _orbit_blades.pop_back()
+		if is_instance_valid(extra):
+			extra.queue_free()
+	for i in _orbit_blades.size():
+		var base_angle: float = (float(i) / float(max(_orbit_blades.size(), 1))) * TAU
+		_orbit_blades[i].set_params(radius, speed, base_angle, dmg, element, self)
