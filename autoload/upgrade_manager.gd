@@ -12,40 +12,80 @@ var xp_to_next: int = 8  # 5 + 1*3
 ## 武器槽上限
 const MAX_WEAPON_SLOTS: int = 4
 
-## 武器目录：登记所有可获取武器（独立场景 root=Node+script）。
-## 后续每加一把武器，在此追加一条；场景未建好前不要加，避免 acquire 时 load 失败。
+## 武器目录：登记所有可获取武器（每把武器 = 一个 WeaponBase 脚本，acquire 时用 script.new() 实例化）。
+## 仅保留 宝石.md 定义的行为原语武器。
 const WEAPON_CATALOG: Array = [
 	{
-		"id": &"pistol",
-		"display_name": "手枪",
-		"desc": "稳定单发，穿透与弹数成长",
-		"scene_path": "res://scenes/weapon_pistol.tscn",
-		"node_name": "WeaponPistol",
-		"icon_color": Color(1.0, 0.9, 0.2),
+		"id": &"bow",
+		"display_name": "弓箭",
+		"desc": "扇形多发箭矢，弹数与伤害成长",
+		"script_path": "res://scripts/weapon/weapon_bow.gd",
+		"node_name": "WeaponBow",
+		"icon_color": Color(0.6, 0.4, 0.2),
 	},
 	{
-		"id": &"shotgun",
-		"display_name": "霰弹枪",
-		"desc": "扇形多发，贴脸爆发，远距衰减",
-		"scene_path": "res://scenes/weapon_shotgun.tscn",
-		"node_name": "WeaponShotgun",
-		"icon_color": Color(1.0, 0.5, 0.2),
+		"id": &"crossbow",
+		"display_name": "弩箭",
+		"desc": "单发高伤穿透弩矢",
+		"script_path": "res://scripts/weapon/weapon_crossbow.gd",
+		"node_name": "WeaponCrossbow",
+		"icon_color": Color(0.45, 0.3, 0.15),
 	},
 	{
-		"id": &"rocket",
-		"display_name": "火箭炮",
-		"desc": "慢速大弹，爆炸 AoE + 击退",
-		"scene_path": "res://scenes/weapon_rocket.tscn",
-		"node_name": "WeaponRocket",
-		"icon_color": Color(0.9, 0.4, 0.4),
+		"id": &"dagger",
+		"display_name": "匕首",
+		"desc": "高频低伤飞刀，攻速成长",
+		"script_path": "res://scripts/weapon/weapon_dagger.gd",
+		"node_name": "WeaponDagger",
+		"icon_color": Color(0.85, 0.85, 0.9),
 	},
 	{
-		"id": &"orbit_blade",
-		"display_name": "回旋刀",
-		"desc": "环绕玩家的持续切割",
-		"scene_path": "res://scenes/weapon_orbit_blade.tscn",
-		"node_name": "WeaponOrbitBlade",
-		"icon_color": Color(0.9, 0.9, 0.9),
+		"id": &"boomerang",
+		"display_name": "回旋镖",
+		"desc": "高速穿透飞镖",
+		"script_path": "res://scripts/weapon/weapon_boomerang.gd",
+		"node_name": "WeaponBoomerang",
+		"icon_color": Color(0.95, 0.75, 0.2),
+	},
+	{
+		"id": &"musket",
+		"display_name": "火枪",
+		"desc": "单发高伤远程射击",
+		"script_path": "res://scripts/weapon/weapon_musket.gd",
+		"node_name": "WeaponMusket",
+		"icon_color": Color(0.3, 0.3, 0.3),
+	},
+	{
+		"id": &"harp",
+		"display_name": "竖琴",
+		"desc": "随机方向发射音符",
+		"script_path": "res://scripts/weapon/weapon_harp.gd",
+		"node_name": "WeaponHarp",
+		"icon_color": Color(0.95, 0.6, 0.9),
+	},
+	{
+		"id": &"gem_spell",
+		"display_name": "宝石法术",
+		"desc": "大扇形多发弹幕",
+		"script_path": "res://scripts/weapon/weapon_gem_spell.gd",
+		"node_name": "WeaponGemSpell",
+		"icon_color": Color(0.6, 0.85, 1.0),
+	},
+	{
+		"id": &"holy_water",
+		"display_name": "圣水瓶",
+		"desc": "投掷爆炸 AoE + 击退",
+		"script_path": "res://scripts/weapon/weapon_holy_water.gd",
+		"node_name": "WeaponHolyWater",
+		"icon_color": Color(0.7, 0.85, 1.0),
+	},
+	{
+		"id": &"mortar",
+		"display_name": "矮人榴弹炮",
+		"desc": "大范围高伤爆炸 + 强击退",
+		"script_path": "res://scripts/weapon/weapon_mortar.gd",
+		"node_name": "WeaponMortar",
+		"icon_color": Color(0.5, 0.5, 0.55),
 	},
 ]
 
@@ -152,18 +192,22 @@ func _has_unowned_in_catalog() -> bool:
 
 
 ## 获取一把新武器（调用前应已有空槽且未持有）
+## 用 script.new() 实例化（武器脚本 extends WeaponBase extends Node，_init 设元信息、_ready 取容器）。
 func acquire_weapon(id: StringName) -> WeaponBase:
 	var entry: Dictionary = _get_catalog_entry(id)
 	if entry.is_empty():
 		return null
 	if get_free_slots() <= 0:
 		return null
-	var scene: PackedScene = load(entry["scene_path"])
-	var node = scene.instantiate()
+	var script = load(entry["script_path"])
+	var node = script.new()
 	if node is WeaponBase:
 		node.name = entry["node_name"]
 		game_manager.player.add_child(node)
+		node.set_process(true)  # script.new() 实例化的节点防御性显式启用 _process
 		return node
+	if is_instance_valid(node):
+		node.queue_free()
 	return null
 
 

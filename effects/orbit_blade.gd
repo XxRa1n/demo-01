@@ -1,5 +1,7 @@
 extends Area2D
 
+const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+
 ## 回旋刀实体：绕玩家旋转的持续切割武器。
 ## 多刀均布（每把刀的 base_angle 由武器在创建时分配）。
 ## 用 get_overlapping_bodies 轮询命中 + per-enemy hit cooldown，防止单敌人被无限掉血。
@@ -14,6 +16,10 @@ var angle: float = 0.0            # 当前累计旋转角
 var damage_per_hit: float = 4.0
 var _hit_cooldowns: Dictionary = {}  # { enemy_instance_id: 剩余cd }
 
+## 元素与来源武器：随命中伤害进入 DamageInfo
+var element: int = DamageInfo.Element.NONE
+var source_weapon: Node = null
+
 @onready var sprite: Sprite2D = $Sprite2D
 
 
@@ -24,11 +30,13 @@ func _ready() -> void:
 	sprite.texture = ImageTexture.create_from_image(img)
 
 
-func set_params(p_radius: float, p_speed: float, p_base_angle: float, p_damage: float) -> void:
+func set_params(p_radius: float, p_speed: float, p_base_angle: float, p_damage: float, p_element: int = DamageInfo.Element.NONE, p_source: Node = null) -> void:
 	orbit_radius = p_radius
 	orbit_speed = p_speed
 	base_angle = p_base_angle
 	damage_per_hit = p_damage
+	element = p_element
+	source_weapon = p_source
 
 
 func _physics_process(delta: float) -> void:
@@ -58,5 +66,7 @@ func _physics_process(delta: float) -> void:
 		if body is CharacterBody2D and body.has_method("take_damage") and not body.is_dead:
 			var rid: int = body.get_instance_id()
 			if not _hit_cooldowns.has(rid):
-				body.take_damage(damage_per_hit)
+				var info := DamageInfo.new(damage_per_hit, element, Vector2.ZERO, 0.0)
+				info.source_weapon = source_weapon
+				combat_system.damage_enemy(body, info)
 				_hit_cooldowns[rid] = HIT_CD

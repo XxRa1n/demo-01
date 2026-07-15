@@ -1,10 +1,16 @@
 extends Area2D
 
+const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+
 ## 子弹属性（由武器设置）
 var projectile_damage: float = 10.0
 var projectile_speed: float = 400.0
 var pierce_count: int = 0  # 0 = 击中即消失，1 = 穿透1个敌人
 var direction: Vector2 = Vector2.RIGHT
+
+## 元素与来源武器：由武器在发射时戳上，随伤害进入 DamageInfo（Phase 3 起被状态/反应读取）
+var element: int = DamageInfo.Element.NONE
+var source_weapon: Node = null
 
 ## 飞出地图边界多远后销毁（子弹不与墙碰撞，会越过边界）
 const DESPAWN_MARGIN: float = 100.0
@@ -44,11 +50,13 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-func setup(dmg: float, spd: float, dir: Vector2, pierce: int) -> void:
+func setup(dmg: float, spd: float, dir: Vector2, pierce: int, p_element: int = DamageInfo.Element.NONE, p_source: Node = null) -> void:
 	projectile_damage = dmg
 	projectile_speed = spd
 	direction = dir.normalized()
 	pierce_count = pierce
+	element = p_element
+	source_weapon = p_source
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -57,7 +65,9 @@ func _on_body_entered(body: Node2D) -> void:
 
 	# 检查是否击中敌人
 	if body is CharacterBody2D and body.has_method("take_damage"):
-		body.take_damage(projectile_damage)
+		var info := DamageInfo.new(projectile_damage, element, Vector2.ZERO, 0.0)
+		info.source_weapon = source_weapon
+		combat_system.damage_enemy(body, info)
 		hit_count += 1
 
 		# 检查穿透次数

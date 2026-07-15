@@ -64,6 +64,6 @@ func _on_body_entered(body: Node2D) -> void:
 	# 只伤害玩家
 	if body == game_manager.player:
 		if game_manager.player:
-			game_manager.player.take_damage(projectile_damage)
+			combat_system.damage_player(projectile_damage, self)
 		is_destroyed = true
 		call_deferred("queue_free")

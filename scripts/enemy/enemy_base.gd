@@ -10,6 +10,8 @@ extends CharacterBody2D
 ## 例如远程兵 enemy_shooter 覆盖这两者实现「风筝走位 + 周期开火」，
 ## 其风筝 / 射击代码全部收在 enemy_shooter.gd 里，基类不掺和远程逻辑。
 
+const StatusHandler = preload("res://scripts/status/status_handler.gd")
+
 ## 敌人属性（setup 时据子类配置 + 难度缩放写入）
 var enemy_hp: float = 8.0
 var enemy_max_hp: float = 8.0
@@ -26,6 +28,10 @@ var damage_area_radius: float = 12.0
 ## 行为开关
 var show_hp_bar: bool = false
 var xp_drop: int = 1  # 死亡掉落的 XP 宝石数量
+var enemy_tier: String = "normal"  # 斩杀阈值用：normal / elite / boss
+
+## 状态组件（_ready 自动挂载）；元素状态 / 减速 / 易伤由此管理
+var status: Node = null
 
 ## 软分离（敌人间防重叠，boids 式排斥力）
 const SEPARATION_WEIGHT: float = 1.0  # 推开强度系数（乘到速度上）
@@ -75,6 +81,10 @@ func _ready() -> void:
 	# 连接伤害区检测（碰到玩家 CharacterBody2D）
 	damage_area.body_entered.connect(_on_damage_body_entered)
 
+	# 挂载状态组件（元素状态 / 减速 / 易伤 / 反应入口）
+	status = StatusHandler.new()
+	add_child(status)
+
 	queue_redraw()
 
 
@@ -92,6 +102,7 @@ func setup(p_stat_scale: float = 1.0) -> void:
 	damage_area_radius = float(c.get("damage_area_radius", 12.0))
 	show_hp_bar = bool(c.get("show_hp_bar", false))
 	xp_drop = int(c.get("xp_drop", 1))
+	enemy_tier = String(c.get("tier", "normal"))
 	separation_radius = float(c.get("separation_radius", float(sprite_size)))
 
 	# 远程 / 特殊参数由需要它的子类在覆盖 setup 时自行读取（见 enemy_shooter.gd）
@@ -113,7 +124,8 @@ func _physics_process(delta: float) -> void:
 
 	# 朝玩家的位移方向（远程兵覆盖为风筝）
 	var seek_dir := _get_seek_dir(to_player, dist)
-	var seek := seek_dir * enemy_speed
+	var slow: float = status.get_slow_mult() if (status != null and is_instance_valid(status)) else 1.0
+	var seek := seek_dir * (enemy_speed * slow)
 	# 软分离：避开附近敌人，防止全部叠到玩家身上
 	var avoid := _compute_separation() * enemy_speed * SEPARATION_WEIGHT
 	var desired := seek + avoid
@@ -211,4 +223,4 @@ func _on_damage_body_entered(body: Node2D) -> void:
 	# 如果碰到玩家，对玩家造成伤害
 	if body == game_manager.player:
 		if game_manager.player:
-			game_manager.player.take_damage(contact_damage)
+			combat_system.damage_player(contact_damage, self)

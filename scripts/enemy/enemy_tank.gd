@@ -8,6 +8,7 @@ const CONFIG := {
 	"color": Color(0.35, 0.35, 0.45), "sprite_size": 40,
 	"collision_radius": 20.0, "damage_area_radius": 22.0,
 	"xp_drop": 5, "show_hp_bar": true, "separation_radius": 44.0,
+		"tier": "elite",
 }
 
 

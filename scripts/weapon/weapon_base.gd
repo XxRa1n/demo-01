@@ -1,6 +1,8 @@
 class_name WeaponBase
 extends Node
 
+const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+
 ## 武器基类：承载所有武器的通用逻辑——冷却计时、等级成长、找敌、伤害计算、容器获取。
 ## 子类只需覆盖：_fire()（发射逻辑）、_level_data()（返回 LEVEL_DATA）、
 ## _init() 里写元信息（weapon_id/display_name/weapon_icon_color/base_damage/base_cooldown）。
@@ -43,7 +45,9 @@ func _process(delta: float) -> void:
 		return
 	cooldown_timer -= delta
 	if cooldown_timer <= 0.0:
-		cooldown_timer = base_cooldown * game_manager.player.cooldown_mult
+		var lv := get_current_level_data()
+		var cd_mult: float = float(lv.get("cd", 1.0))  # 等级成长里的攻速/减cd
+		cooldown_timer = base_cooldown * cd_mult * game_manager.player.cooldown_mult
 		_fire()
 
 
@@ -111,3 +115,32 @@ func _find_nearest_enemy() -> CharacterBody2D:
 ## 公共工具：伤害 = base_damage × mult × player.might
 func _calc_damage(mult: float = 1.0) -> float:
 	return base_damage * mult * game_manager.player.might
+
+
+## 通用：朝最近敌人发射一组扇形扩散的直线子弹（ProjectileBase 类武器共用）。
+## count=1 时无扩散；元素与来源武器随子弹带入 DamageInfo。
+func _fire_seek_spread(scene: PackedScene, count: int, spread: float, speed: float, dmg: float, pierce: int, element: int = DamageInfo.Element.NONE) -> void:
+	var nearest := _find_nearest_enemy()
+	if nearest == null:
+		return
+	var base_dir := (nearest.global_position - game_manager.player.global_position).normalized()
+	var start: float = -spread * float(count - 1) / 2.0
+	for i in count:
+		var dir := base_dir.rotated(start + spread * float(i)) if count > 1 else base_dir
+		var proj := scene.instantiate()
+		proj.setup(dmg, speed, dir, pierce, element, self)
+		proj.global_position = game_manager.player.global_position
+		projectiles_container.add_child(proj)
+
+
+## 通用：朝最近敌人发射一枚爆炸弹（LocatedBase 类武器共用）。
+func _fire_lob(scene: PackedScene, speed: float, dmg: float, blast: float, knockback: float) -> void:
+	var nearest := _find_nearest_enemy()
+	if nearest == null:
+		return
+	var dir := (nearest.global_position - game_manager.player.global_position).normalized()
+	var proj := scene.instantiate()
+	proj.setup(dmg, speed, dir, blast, knockback)
+	proj.source_weapon = self
+	proj.global_position = game_manager.player.global_position
+	projectiles_container.add_child(proj)

@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+
 ## 玩家属性
 var max_hp: int = 100
 var hp: int = 100
@@ -8,6 +10,12 @@ var might: float = 1.0
 var cooldown_mult: float = 1.0
 var pickup_range: float = 30.0
 var armor: int = 0
+
+## 战斗属性（Phase 2：暴击 / 吸血 / 斩杀；Phase 5 起由宝石提供）
+var crit_rate: float = 0.0           # 暴击概率 [0,1]
+var crit_damage_mult: float = 1.5    # 暴击伤害倍率（暴击时 amt × 此值）
+var lifesteal_pct: float = 0.0       # 吸血比例（造成伤害时按此回血）
+var execute_enabled: bool = false    # 是否开启斩杀（低血敌人直接秒杀）
 
 ## 无敌帧
 var is_invincible: bool = false
@@ -89,3 +97,53 @@ func take_damage(amount: int) -> void:
 		game_manager.game_won = false
 		game_manager.game_ended.emit(false)
 		died.emit()
+
+
+## 治疗（吸血等用）：不超过 max_hp，并同步 damaged 信号供 HUD 更新。
+func heal(amount: int) -> void:
+	if amount <= 0 or game_manager.game_over:
+		return
+	hp = min(hp + amount, max_hp)
+	damaged.emit(hp, max_hp)
+
+
+# DEBUG（仅调试构建）：数字键 1/2/3 临时授予暴击 / 吸血 / 斩杀，供测试。
+# Phase 5 起这些属性由宝石正式提供，届时删除本调试段。
+func _unhandled_input(event: InputEvent) -> void:
+	if not OS.is_debug_build():
+		return
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	match event.keycode:
+		KEY_1:
+			crit_rate = minf(crit_rate + 0.25, 1.0)
+			crit_damage_mult += 0.5
+		KEY_2:
+			lifesteal_pct += 0.05
+		KEY_3:
+			execute_enabled = not execute_enabled
+		KEY_5:
+			_debug_apply_element(DamageInfo.Element.FIRE)
+		KEY_6:
+			_debug_apply_element(DamageInfo.Element.WATER)
+		KEY_7:
+			_debug_apply_element(DamageInfo.Element.ICE)
+		KEY_8:
+			_debug_apply_element(DamageInfo.Element.LIGHTNING)
+		KEY_9:
+			_debug_apply_element(DamageInfo.Element.GRASS)
+
+
+## DEBUG：对附近敌人直接附着元素，验证状态系统（Phase 5 起元素改由宝石武器命中触发）。
+func _debug_apply_element(element: int) -> void:
+	if not enemy_spawner.enemies_container:
+		return
+	var center := global_position
+	for e in enemy_spawner.enemies_container.get_children():
+		if not is_instance_valid(e):
+			continue
+		if center.distance_to(e.global_position) > 320.0:
+			continue
+		var sh = e.get("status")
+		if sh != null and is_instance_valid(sh) and sh.has_method("apply"):
+			sh.apply(element, 6.0)

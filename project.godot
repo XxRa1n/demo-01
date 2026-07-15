@@ -20,6 +20,8 @@ config/icon="res://icon.svg"
 game_manager="*res://autoload/game_manager.gd"
 enemy_spawner="*res://autoload/enemy_spawner.gd"
 upgrade_manager="*res://autoload/upgrade_manager.gd"
+combat_system="*res://autoload/combat_system.gd"
+reaction_engine="*res://autoload/reaction_engine.gd"
 
 [input]
 

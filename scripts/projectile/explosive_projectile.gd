@@ -1,5 +1,7 @@
 extends Area2D
 
+const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+
 ## 爆炸弹（火箭炮用）：慢速飞行，命中敌人或飞到最大射程时爆炸，
 ## 对爆炸半径内所有敌人造成伤害 + 击退。
 ## 不复用 projectile_base：它的命中是「直接 take_damage + 销毁」；这里要 AoE 范围伤害。
@@ -10,6 +12,10 @@ var blast_radius: float = 90.0
 var knockback_force: float = 400.0
 var projectile_speed: float = 320.0
 var direction: Vector2 = Vector2.RIGHT
+
+## 元素与来源武器：随爆炸伤害进入 DamageInfo
+var element: int = DamageInfo.Element.NONE
+var source_weapon: Node = null
 
 const MAX_RANGE: float = 600.0    # 飞到此时引爆
 const DESPAWN_MARGIN: float = 100.0
@@ -46,12 +52,14 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-func setup(dmg: float, spd: float, dir: Vector2, blast: float, knockback: float) -> void:
+func setup(dmg: float, spd: float, dir: Vector2, blast: float, knockback: float, p_element: int = DamageInfo.Element.NONE, p_source: Node = null) -> void:
 	explosion_damage = dmg
 	projectile_speed = spd
 	direction = dir.normalized()
 	blast_radius = blast
 	knockback_force = knockback
+	element = p_element
+	source_weapon = p_source
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -75,6 +83,8 @@ func _explode() -> void:
 				var d: float = offset.length()
 				if d <= blast_radius:
 					var dir := offset.normalized() if d > 0.001 else Vector2.RIGHT
-					e.take_damage(explosion_damage, dir, knockback_force)
+					var info := DamageInfo.new(explosion_damage, element, dir, knockback_force)
+					info.source_weapon = source_weapon
+					combat_system.damage_enemy(e, info)
 	# TODO: 爆炸视觉特效（占位省略）
 	call_deferred("queue_free")

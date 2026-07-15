@@ -12,6 +12,7 @@ const CONFIG := {
 	"color": Color(0.2, 0.75, 0.95), "sprite_size": 22,
 	"collision_radius": 11.0, "damage_area_radius": 12.0,
 	"xp_drop": 2, "show_hp_bar": false, "separation_radius": 26.0,
+		"tier": "normal",
 	# 远程：风筝走位 + 周期发射大慢子弹（子弹伤害随 stat_scale 缩放）
 	"shoot_interval": 2.4, "shoot_range": 460.0,
 	"preferred_range": 280.0, "proj_speed": 130.0, "proj_damage": 10,
