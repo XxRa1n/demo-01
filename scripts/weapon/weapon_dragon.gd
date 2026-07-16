@@ -3,7 +3,6 @@ extends WeaponBase
 ## 龙（Minion·Follower）：跟随玩家的中距吐息 AoE，附火元素（点燃）。
 ## L5 三条火焰路径（近似为更大 AoE + 更多数量）。
 
-const DamageInfo = preload("res://scripts/combat/damage_info.gd")
 const Minion = preload("res://effects/minion.gd")
 
 const LEVEL_DATA: Array = [

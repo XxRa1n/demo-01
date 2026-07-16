@@ -3,7 +3,6 @@ extends WeaponBase
 ## 喷火（Shockwave·扇形 + 火）：朝最近敌人方向喷出火锥，附火元素（点燃）。
 ## L5「地上岩浆区域」留待后续；本批为火锥 + 燃烧附着。
 
-const DamageInfo = preload("res://scripts/combat/damage_info.gd")
 const Shockwave = preload("res://effects/shockwave.gd")
 
 const ARC: float = 1.4  # ~80° 火锥

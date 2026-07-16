@@ -12,6 +12,10 @@ const PlayerScene = preload("res://scenes/player.tscn")
 func _ready() -> void:
 	var player = PlayerScene.instantiate()
 	game_world.add_child(player)
+	# 背包 / 镶嵌面板（代码构建，挂 UILayer；B 键开关）
+	var gi = preload("res://ui/gem_inventory_controller.gd").new()
+	gi.name = "GemInventoryPanel"
+	$UILayer.add_child(gi)
 	# 等待玩家 ready 后连接信号
 	await get_tree().process_frame
 	player.damaged.connect(hud._on_player_damaged)

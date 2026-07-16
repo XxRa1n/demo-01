@@ -7,6 +7,7 @@ const SPAWN_EDGE_INSET: float = 50.0  # 生成点离地图墙边的最小距离
 const DEFAULT_WARN: float = 0.6  # 普通敌人生成预警时长（秒）
 const BOSS_WARN: float = 1.0  # Boss 生成预警时长（秒，给玩家更多反应时间）
 const BURST_MAX_CAP: int = 12  # 单次成簇生成的敌人数量上限（原 8）
+const GEM_DROP_CHANCE: float = 0.08  # 普通敌人死亡掉落宝石的概率（boss 必掉）
 
 # ─── 敌人注册表 ────────────────────────────────────────────────────
 # 每种敌人 = 一个独立场景 + 一个独立脚本（脚本里的 const CONFIG 是该敌人的单一数据源）。
@@ -61,6 +62,7 @@ var xp_gems_container: Node2D = null
 ## 场景引用
 var xp_gem_scene: PackedScene
 var spawn_warning_scene: PackedScene
+const gem_drop_scene: PackedScene = preload("res://effects/gem_drop.tscn")
 
 ## 预警特效容器（挂在 GameWorld 下与 Enemies 同级；重启后随场景重载，惰性重取）
 var _warnings_container: Node2D = null
@@ -284,7 +286,7 @@ func _trigger_boss_wave(wave: Dictionary) -> void:
 		_schedule_spawn(escort_kind, KIND_SCRIPTS[escort_kind].CONFIG, stat_scale, get_spawn_position_ring(), DEFAULT_WARN)
 
 
-## 敌人死亡回调 → 按原型掉落多颗 XP 宝石
+## 敌人死亡回调 → 按原型掉落多颗 XP 宝石；boss 必掉宝石，普通敌人按概率掉。
 func _on_enemy_died(pos: Vector2, drop_count: int) -> void:
 	if not xp_gems_container:
 		return
@@ -292,3 +294,10 @@ func _on_enemy_died(pos: Vector2, drop_count: int) -> void:
 		var gem: Area2D = xp_gem_scene.instantiate()
 		gem.global_position = pos + Vector2(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
 		xp_gems_container.call_deferred("add_child", gem)
+	# 宝石掉落：boss(drop_count>=50) 必掉，否则 GEM_DROP_CHANCE 概率
+	if drop_count >= 50 or randf() < GEM_DROP_CHANCE:
+		var ids := gem_registry.all_ids()
+		var d: Area2D = gem_drop_scene.instantiate()
+		d.gem_id = ids[randi() % ids.size()]
+		d.global_position = pos + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))
+		xp_gems_container.call_deferred("add_child", d)

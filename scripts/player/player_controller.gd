@@ -24,6 +24,14 @@ var bloodlust_timer: float = 0.0
 var kill_atk_enabled: bool = false
 var kill_atkspd_enabled: bool = false
 
+## 宝石库存：{ gem_id(StringName): 数量 }。敌人掉落 gem_drop 拾取后累加；镶嵌面板消耗。
+var gem_inventory: Dictionary = {}
+
+
+## 拾取一颗宝石（gem_drop 调用）。
+func add_gem(gem_id: StringName) -> void:
+	gem_inventory[gem_id] = int(gem_inventory.get(gem_id, 0)) + 1
+
 ## 无敌帧
 var is_invincible: bool = false
 var invincible_timer: float = 0.0
