@@ -13,6 +13,8 @@ var active_time: float = 1.0
 var fade_time: float = 0.2
 var element: int = DamageInfo.Element.NONE
 var source_weapon: Node = null
+## 是否追踪最近敌人（false 时方向固定，用于 X 型 / 米字 等多向光束）
+var track: bool = true
 
 var _time: float = 0.0
 var _state: int = 0  # 0=active, 1=fade
@@ -28,6 +30,12 @@ func setup(p_dps: float, p_length: float, p_width: float, p_active: float, p_ele
 	source_weapon = p_source
 
 
+## 设为固定方向（关闭追踪），多向光束用。
+func set_fixed_dir(d: Vector2) -> void:
+	_dir = d.normalized()
+	track = false
+
+
 func _physics_process(delta: float) -> void:
 	if game_manager.game_over or game_manager.is_paused:
 		return
@@ -36,9 +44,10 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	if _state == 0:
 		global_position = game_manager.player.global_position
-		var nearest := _find_nearest()
-		if nearest != null:
-			_dir = (nearest.global_position - global_position).normalized()
+		if track:
+			var nearest := _find_nearest()
+			if nearest != null:
+				_dir = (nearest.global_position - global_position).normalized()
 		_damage_along(delta)
 		if _time >= active_time:
 			_state = 1

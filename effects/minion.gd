@@ -1,6 +1,7 @@
 extends Node2D
 
 const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+const Beam = preload("res://effects/beam.gd")
 const projectile_scene: PackedScene = preload("res://scenes/projectile.tscn")
 
 ## 召唤物（炮台/猫/龙/熊用）：环绕玩家公转，周期自动攻击射程内最近敌人。
@@ -21,6 +22,8 @@ var element: int = DamageInfo.Element.NONE
 var source_weapon: Node = null
 var color: Color = Color(0.8, 0.6, 0.4)
 var size: int = 16
+var charge: bool = false        # 横冲直撞：朝最近敌人冲锋而非环绕玩家
+var follow_speed: float = 240.0
 
 var _timer: float = 0.0
 
@@ -43,13 +46,23 @@ func set_base_angle(a: float) -> void:
 	base_angle = a
 
 
+func set_charge(c: bool) -> void:
+	charge = c
+
+
 func _physics_process(delta: float) -> void:
 	if game_manager.game_over or game_manager.is_paused:
 		return
 	if not is_instance_valid(game_manager.player):
 		return
-	angle = fmod(angle + orbit_speed * delta, TAU)
-	global_position = game_manager.player.global_position + Vector2.from_angle(base_angle + angle) * orbit_radius
+	if charge:
+		# 横冲直撞：朝最近敌人冲锋，无敌人则回玩家身边
+		var tgt := _find_nearest_any()
+		var dest: Vector2 = tgt.global_position if tgt != null else game_manager.player.global_position
+		global_position = global_position.move_toward(dest, follow_speed * delta)
+	else:
+		angle = fmod(angle + orbit_speed * delta, TAU)
+		global_position = game_manager.player.global_position + Vector2.from_angle(base_angle + angle) * orbit_radius
 
 	_timer -= delta
 	if _timer <= 0.0:
@@ -70,6 +83,13 @@ func _attack(nearest: Node) -> void:
 		proj.global_position = global_position
 		if is_instance_valid(get_parent()):
 			get_parent().add_child(proj)
+	elif attack_kind == "beam":
+		# 炮台 L5 发射 laser：朝最近敌人射一束短光束
+		var b := Beam.new()
+		b.setup(damage * 3.0, 360.0, 12.0, 0.3, element, source_weapon)
+		b.global_position = global_position
+		if is_instance_valid(get_parent()):
+			get_parent().add_child(b)
 	else:
 		# 自身周围 AoE
 		if enemy_spawner.enemies_container:
@@ -88,6 +108,21 @@ func _find_nearest_in_range() -> Node:
 		return null
 	var nearest: Node = null
 	var nd: float = attack_range
+	for c in enemy_spawner.enemies_container.get_children():
+		if c is CharacterBody2D and is_instance_valid(c):
+			var d: float = global_position.distance_to(c.global_position)
+			if d < nd:
+				nd = d
+				nearest = c
+	return nearest
+
+
+## 不限范围的最近敌人（横冲直撞用）。
+func _find_nearest_any() -> Node:
+	if not enemy_spawner.enemies_container:
+		return null
+	var nearest: Node = null
+	var nd: float = INF
 	for c in enemy_spawner.enemies_container.get_children():
 		if c is CharacterBody2D and is_instance_valid(c):
 			var d: float = global_position.distance_to(c.global_position)

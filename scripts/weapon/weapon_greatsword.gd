@@ -1,6 +1,6 @@
 extends WeaponBase
 
-## 巨剑（SlashArea）：更宽更大的斩击，高伤慢速。L5 巨剑变大（范围 + 伤害）。
+## 巨剑（SlashArea）：更宽更大的斩击，高伤慢速。L5 巨剑变大持续 5s（伤害/范围临时放大）。
 
 const Slash = preload("res://effects/slash.gd")
 
@@ -14,6 +14,9 @@ func _init() -> void:
 
 
 func _fire() -> void:
+	# L5 变大：不在变大态时触发，持续 5s 后自动还原（_dmg_mult/_size_mult 临时放大）
+	if _l5_active and not _grow_active:
+		_start_grow()
 	var nearest := _find_nearest_enemy()
 	var facing := (nearest.global_position - game_manager.player.global_position).normalized() if nearest != null else Vector2.RIGHT
 	var s := Slash.new()
@@ -24,6 +27,5 @@ func _fire() -> void:
 	projectiles_container.add_child(s)
 
 
-func _apply_special() -> void:  # L5 巨剑变大
-	_size_mult *= 1.4
-	_dmg_mult *= 1.2
+func _apply_special() -> void:  # L5 巨剑变大 5s
+	pass

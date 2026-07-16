@@ -1,8 +1,9 @@
 extends WeaponBase
 
-## 长剑（SlashArea）：瞬时扇形斩击 + 强击退。L5 月光大剑的波（更大范围）。
+## 长剑（SlashArea）：瞬时扇形斩击 + 强击退。L5 月光大剑的波（斩击同时向前发出一道飞行波）。
 
 const Slash = preload("res://effects/slash.gd")
+const projectile_scene: PackedScene = preload("res://scenes/projectile.tscn")
 
 
 func _init() -> void:
@@ -11,6 +12,7 @@ func _init() -> void:
 	weapon_icon_color = Color(0.9, 0.9, 0.95)
 	base_damage = 14.0
 	base_cooldown = 0.9
+	_pierce_supported = true
 
 
 func _fire() -> void:
@@ -22,7 +24,13 @@ func _fire() -> void:
 	s.source_weapon = self
 	s.global_position = game_manager.player.global_position
 	projectiles_container.add_child(s)
+	# L5 月光大剑的波：向前发射一道穿透波
+	if _l5_active and nearest != null:
+		var wave := projectile_scene.instantiate()
+		wave.setup(_calc_damage() * 0.8, 560.0 * _size_mult, facing, 2 + _pierce_bonus, _gem_element(), self)
+		wave.global_position = game_manager.player.global_position
+		projectiles_container.add_child(wave)
 
 
 func _apply_special() -> void:  # L5 月光大剑的波
-	_size_mult *= 1.3
+	pass

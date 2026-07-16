@@ -2,6 +2,7 @@ class_name WeaponBase
 extends Node
 
 const DamageInfo = preload("res://scripts/combat/damage_info.gd")
+const Beam = preload("res://effects/beam.gd")
 
 ## 武器基类：通用逻辑——冷却计时、固定升级模板、随机词条、找敌、伤害计算、宝石槽、容器获取。
 ## 升级路径（宝石.md，所有武器统一）：
@@ -44,6 +45,14 @@ var _kb_mult: float = 1.0        # 击退词条
 var _count_bonus: int = 0        # 数量词条（弹数 / 召唤物 / 飞斧）
 var _pierce_bonus: int = 0       # 穿透词条
 var _affixes: Array = []         # 已获得词条名（展示用）
+## L5 专属是否激活（子类在 _fire 里据此分支到专属行为）
+var _l5_active: bool = false
+## 临时附魔（宝石法术 L5）：持续期间武器命中元素 = _enchant_element
+var _enchant_element: int = 0
+var _enchant_timer: float = 0.0
+## 临时变大（巨剑 L5）：持续期间 _dmg_mult / _size_mult 放大
+var _grow_active: bool = false
+var _grow_timer: float = 0.0
 ## 该武器是否吃「数量 / 穿透」词条（子类在 _init 设置）
 var _count_supported: bool = false
 var _pierce_supported: bool = false
@@ -56,6 +65,10 @@ const AFFIX_DAMAGE_MULT: float = 1.12
 const AFFIX_CD_MULT: float = 0.9
 const AFFIX_SIZE_MULT: float = 1.15
 const AFFIX_KB_MULT: float = 1.3
+const ENCHANT_DURATION: float = 10.0   # 宝石法术附魔时长
+const GROW_DURATION: float = 5.0       # 巨剑变大时长
+const GROW_DMG_MULT: float = 1.2
+const GROW_SIZE_MULT: float = 1.4
 
 
 func _ready() -> void:
@@ -69,6 +82,15 @@ func _process(delta: float) -> void:
 		return
 	if not game_manager.player:
 		return
+	# 临时增益计时（附魔 / 巨剑变大）
+	if _enchant_timer > 0.0:
+		_enchant_timer -= delta
+	if _grow_active:
+		_grow_timer -= delta
+		if _grow_timer <= 0.0:
+			_grow_active = false
+			_dmg_mult /= GROW_DMG_MULT
+			_size_mult /= GROW_SIZE_MULT
 	if not is_instance_valid(projectiles_container):
 		_refresh_container()
 	if not is_instance_valid(projectiles_container):
@@ -107,6 +129,19 @@ func _find_nearest_enemy() -> CharacterBody2D:
 	return nearest
 
 
+## 公共工具：随机一个敌人的位置（无敌人返回 null）。火枪空袭等随机砸敌用。
+func _random_enemy_pos() -> Variant:
+	if not enemy_spawner.enemies_container:
+		return null
+	var arr: Array = []
+	for child in enemy_spawner.enemies_container.get_children():
+		if child is CharacterBody2D and is_instance_valid(child):
+			arr.append(child)
+	if arr.is_empty():
+		return null
+	return arr[randi() % arr.size()].global_position
+
+
 ## 伤害 = base_damage × mult × _dmg_mult(升级/词条) × player.might
 func _calc_damage(mult: float = 1.0) -> float:
 	return base_damage * mult * _dmg_mult * game_manager.player.might
@@ -126,6 +161,7 @@ func level_up() -> bool:
 		4:  # 增加攻速
 			_cd_mult *= L4_CD_MULT
 		5:  # 专属机制
+			_l5_active = true
 			_apply_special()
 		6:  # 增加随机词条
 			_roll_affix()
@@ -257,6 +293,16 @@ func _fire_lob(scene: PackedScene, speed: float, dmg: float, blast: float, knock
 		projectiles_container.add_child(proj)
 
 
+## 向多个固定方向同时发射持续光束（laser X型 / 环绕圣经米字 用）。
+func _fire_beams(directions: Array, dps: float, length: float, width: float, active: float, element: int = DamageInfo.Element.NONE) -> void:
+	for d in directions:
+		var b := Beam.new()
+		b.setup(dps, length, width, active, element, self)
+		b.set_fixed_dir(d)
+		b.global_position = game_manager.player.global_position
+		projectiles_container.add_child(b)
+
+
 ## 维持 N 个环绕实体（OrbitEntity 共用）。数量词条 +刀，范围词条 +半径；元素取自宝石。
 func _sync_orbit_blades(blade_scene: PackedScene, count: int, radius: float, speed: float, dmg: float, element: int = DamageInfo.Element.NONE) -> void:
 	if not is_instance_valid(projectiles_container):
@@ -318,7 +364,28 @@ func _compute_fire_params() -> Dictionary:
 				p["element"] = DamageInfo.Element.LIGHTNING
 			&"grass":
 				p["element"] = DamageInfo.Element.GRASS
+	# 临时附魔（宝石法术 L5）覆盖元素
+	if _enchant_timer > 0.0:
+		p["element"] = _enchant_element
 	return p
+
+
+## 随机附魔一个元素，持续 ENCHANT_DURATION 秒（宝石法术 L5 用）。
+func _roll_enchant() -> void:
+	var els: Array = [DamageInfo.Element.FIRE, DamageInfo.Element.WATER, DamageInfo.Element.ICE, DamageInfo.Element.LIGHTNING, DamageInfo.Element.GRASS]
+	_enchant_element = int(els[randi() % els.size()])
+	_enchant_timer = ENCHANT_DURATION
+
+
+## 临时变大（巨剑 L5 用）：放大伤害/范围，持续 GROW_DURATION 秒后自动还原。
+func _start_grow() -> void:
+	if _grow_active:
+		_grow_timer = GROW_DURATION  # 刷新时长
+		return
+	_grow_active = true
+	_grow_timer = GROW_DURATION
+	_dmg_mult *= GROW_DMG_MULT
+	_size_mult *= GROW_SIZE_MULT
 
 
 func _gem_element(fallback: int = DamageInfo.Element.NONE) -> int:
