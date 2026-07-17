@@ -307,15 +307,8 @@ func acquire_weapon(id: StringName) -> WeaponBase:
 	return null
 
 
-## 丢弃并销毁一把武器
-func remove_weapon(node: WeaponBase) -> void:
-	if is_instance_valid(node):
-		node.get_parent().remove_child(node)
-		node.queue_free()
-
-
 # ─── 升级选项生成 ─────────────────────────────────────────────────
-## 武器步骤三选一池：新武器获取卡 ∪ 已持有升级卡 ∪ 已持有丢弃卡
+## 武器步骤三选一池：新武器获取卡 ∪ 已持有升级卡（无丢弃选项）
 func get_weapon_choices(count: int) -> Array:
 	var pool: Array = []
 	var owned := get_owned_weapons()
@@ -330,9 +323,6 @@ func get_weapon_choices(count: int) -> Array:
 	for w in owned:
 		if not w.is_max_level:
 			pool.append(_make_upgrade_card(w))
-	# 3. 已持有武器的丢弃卡
-	for w in owned:
-		pool.append(_make_discard_card(w))
 
 	return _pick_random(pool, count)
 
@@ -342,7 +332,7 @@ func get_talent_choices(count: int) -> Array:
 	return _pick_random(_get_passive_upgrades(), count)
 
 
-## 武器步骤是否应自动跳过：无新武器可获取 且 无武器可升级（丢弃卡不阻止跳过）
+## 武器步骤是否应自动跳过：无新武器可获取 且 无武器可升级
 func should_skip_weapon_step() -> bool:
 	var no_acquire: bool = get_free_slots() == 0 or not _has_unowned_in_catalog()
 	var no_upgrade: bool = true
@@ -368,14 +358,6 @@ func _make_upgrade_card(w: WeaponBase) -> Dictionary:
 		"name": w.get_next_level_display(),
 		"desc": w.get_upgrade_description(),
 		"apply": func(): w.level_up(),
-	}
-
-
-func _make_discard_card(w: WeaponBase) -> Dictionary:
-	return {
-		"name": "丢弃 " + w.display_name,
-		"desc": "腾出一个武器槽",
-		"apply": func(): remove_weapon(w),
 	}
 
 
