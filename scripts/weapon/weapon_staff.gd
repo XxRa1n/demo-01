@@ -1,10 +1,10 @@
 extends WeaponBase
 
 ## 棍子（SlashArea）：较窄但快的斩击。
-## L5 投掷棍子：棍子飞到目标处原地旋转造成伤害+减速（近似为在目标处留一个伤害+减速地面区域 3s）。
+## L5 投掷旋转：把棍子投掷出去，碰到敌人后停止原地旋转造伤+减速 3s。
 
 const Slash = preload("res://effects/slash.gd")
-const GroundZone = preload("res://effects/ground_zone.gd")
+const ThrownStaff = preload("res://effects/thrown_staff.gd")
 
 
 func _init() -> void:
@@ -17,19 +17,21 @@ func _init() -> void:
 
 func _fire() -> void:
 	var nearest := _find_nearest_enemy()
-	var facing := (nearest.global_position - game_manager.player.global_position).normalized() if nearest != null else Vector2.RIGHT
-	var s := Slash.new()
-	s.setup(130.0 * _size_mult, 1.4, _calc_damage(), 220.0 * _kb_mult, facing)
-	s.element = _gem_element()
-	s.source_weapon = self
-	s.global_position = game_manager.player.global_position
-	projectiles_container.add_child(s)
-	if _l5_active and nearest != null:
-		# 投掷旋转：在目标处留 3s 伤害+减速区域
-		var z := GroundZone.new()
-		z.setup(58.0 * _size_mult, _calc_damage() * 0.4, 0.4, 3.0, DamageInfo.Element.NONE, true, self)
-		z.global_position = nearest.global_position
-		projectiles_container.add_child(z)
+	if _l5_active:
+		# 投掷旋转：投出棍子，碰敌/到最远处停止原地旋转(伤害+减速 3s)
+		var dir := (nearest.global_position - game_manager.player.global_position).normalized() if nearest != null else Vector2.RIGHT
+		var ts := ThrownStaff.new()
+		ts.setup(dir, 520.0, 520.0, _calc_damage(), _gem_element(), self)
+		ts.global_position = game_manager.player.global_position
+		projectiles_container.add_child(ts)
+	else:
+		var facing := (nearest.global_position - game_manager.player.global_position).normalized() if nearest != null else Vector2.RIGHT
+		var s := Slash.new()
+		s.setup(130.0 * _size_mult, 1.4, _calc_damage(), 220.0 * _kb_mult, facing)
+		s.element = _gem_element()
+		s.source_weapon = self
+		s.global_position = game_manager.player.global_position
+		projectiles_container.add_child(s)
 
 
 func _apply_special() -> void:  # L5 投掷棍子原地旋转

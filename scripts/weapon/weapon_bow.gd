@@ -1,6 +1,6 @@
 extends WeaponBase
 
-## 弓箭（ProjectileBase·Spread）：扇形多发箭矢。升级走固定模板；L5 万箭齐发（多发）。
+## 弓箭（ProjectileBase·Spread）：扇形多发箭矢。L5 万箭齐发（大扇形齐射大量箭矢）。
 
 const projectile_scene: PackedScene = preload("res://scenes/projectile.tscn")
 const BASE_COUNT: int = 3
@@ -20,8 +20,12 @@ func _init() -> void:
 
 
 func _fire() -> void:
-	_fire_seek_spread(projectile_scene, BASE_COUNT, SPREAD, ARROW_SPEED, _calc_damage(), BASE_PIERCE)
+	if _l5_active:
+		# 万箭齐发：大扇形齐射 12 支（数量词条额外叠加）
+		_fire_seek_spread(projectile_scene, 12, 0.9, ARROW_SPEED, _calc_damage(), BASE_PIERCE)
+	else:
+		_fire_seek_spread(projectile_scene, BASE_COUNT, SPREAD, ARROW_SPEED, _calc_damage(), BASE_PIERCE)
 
 
-func _apply_special() -> void:  # L5 万箭齐发
-	_count_bonus += 3
+func _apply_special() -> void:  # L5 万箭齐发（行为由 _l5_active 驱动）
+	pass
