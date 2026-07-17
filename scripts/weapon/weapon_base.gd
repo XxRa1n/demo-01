@@ -50,9 +50,13 @@ var _l5_active: bool = false
 ## 临时附魔（宝石法术 L5）：持续期间武器命中元素 = _enchant_element
 var _enchant_element: int = 0
 var _enchant_timer: float = 0.0
-## 临时变大（巨剑 L5）：持续期间 _dmg_mult / _size_mult 放大
-var _grow_active: bool = false
-var _grow_timer: float = 0.0
+## 临时增益（巨剑变大5s / 旋转飞斧3s / 猫分身10s）：持续期间临时加 伤害/范围/数量，到期自动还原
+var _buff_active: bool = false
+var _buff_timer: float = 0.0
+var _buff_dmg: float = 1.0       # 应用时的伤害倍率（还原用）
+var _buff_size: float = 1.0      # 应用时的范围倍率
+var _buff_count: int = 0         # 应用时临时加的数量
+var _buff_cd: float = 0.0        # 增益冷却（周期性增益的间隔，如猫分身/飞斧爆发）
 ## 该武器是否吃「数量 / 穿透」词条（子类在 _init 设置）
 var _count_supported: bool = false
 var _pierce_supported: bool = false
@@ -66,9 +70,6 @@ const AFFIX_CD_MULT: float = 0.9
 const AFFIX_SIZE_MULT: float = 1.15
 const AFFIX_KB_MULT: float = 1.3
 const ENCHANT_DURATION: float = 10.0   # 宝石法术附魔时长
-const GROW_DURATION: float = 5.0       # 巨剑变大时长
-const GROW_DMG_MULT: float = 1.2
-const GROW_SIZE_MULT: float = 1.4
 
 
 func _ready() -> void:
@@ -82,15 +83,21 @@ func _process(delta: float) -> void:
 		return
 	if not game_manager.player:
 		return
-	# 临时增益计时（附魔 / 巨剑变大）
+	# 临时增益计时（附魔 / 临时增益 buff）
 	if _enchant_timer > 0.0:
 		_enchant_timer -= delta
-	if _grow_active:
-		_grow_timer -= delta
-		if _grow_timer <= 0.0:
-			_grow_active = false
-			_dmg_mult /= GROW_DMG_MULT
-			_size_mult /= GROW_SIZE_MULT
+	if _buff_active:
+		_buff_timer -= delta
+		if _buff_timer <= 0.0:
+			_buff_active = false
+			_dmg_mult /= _buff_dmg
+			_size_mult /= _buff_size
+			_count_bonus -= _buff_count
+			_buff_dmg = 1.0
+			_buff_size = 1.0
+			_buff_count = 0
+	if _buff_cd > 0.0:
+		_buff_cd -= delta
 	if not is_instance_valid(projectiles_container):
 		_refresh_container()
 	if not is_instance_valid(projectiles_container):
@@ -377,15 +384,20 @@ func _roll_enchant() -> void:
 	_enchant_timer = ENCHANT_DURATION
 
 
-## 临时变大（巨剑 L5 用）：放大伤害/范围，持续 GROW_DURATION 秒后自动还原。
-func _start_grow() -> void:
-	if _grow_active:
-		_grow_timer = GROW_DURATION  # 刷新时长
+## 临时增益（巨剑变大 / 旋转飞斧 / 猫分身 用）：临时加 伤害/范围/数量，duration 秒后自动还原。
+## 已在增益中则只刷新时长（不叠层）。
+func _start_buff(dmg: float, size: float, count: int, duration: float) -> void:
+	if _buff_active:
+		_buff_timer = duration
 		return
-	_grow_active = true
-	_grow_timer = GROW_DURATION
-	_dmg_mult *= GROW_DMG_MULT
-	_size_mult *= GROW_SIZE_MULT
+	_buff_active = true
+	_buff_dmg = dmg
+	_buff_size = size
+	_buff_count = count
+	_dmg_mult *= dmg
+	_size_mult *= size
+	_count_bonus += count
+	_buff_timer = duration
 
 
 func _gem_element(fallback: int = DamageInfo.Element.NONE) -> int:

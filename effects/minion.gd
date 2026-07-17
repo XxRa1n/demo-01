@@ -90,6 +90,16 @@ func _attack(nearest: Node) -> void:
 		b.global_position = global_position
 		if is_instance_valid(get_parent()):
 			get_parent().add_child(b)
+	elif attack_kind == "triple_flame":
+		# 龙 L5 三条火焰：朝目标方向扇形喷 3 道火
+		var base_dir: Vector2 = (nearest.global_position - global_position).normalized()
+		for i in 3:
+			var dir := base_dir.rotated(deg_to_rad(-25.0 + 25.0 * float(i)))
+			var proj := projectile_scene.instantiate()
+			proj.setup(damage, proj_speed, dir, 0, DamageInfo.Element.FIRE, source_weapon)
+			proj.global_position = global_position
+			if is_instance_valid(get_parent()):
+				get_parent().add_child(proj)
 	else:
 		# 自身周围 AoE
 		if enemy_spawner.enemies_container:

@@ -1,6 +1,6 @@
 extends WeaponBase
 
-## 弩箭（ProjectileBase·Seek）：单发高伤穿透弩矢。L5 诸葛连弩（高伤多穿）。
+## 弩箭（ProjectileBase·Seek）：单发高伤穿透弩矢。L5 诸葛连弩（一次连射多发）。
 
 const projectile_scene: PackedScene = preload("res://scenes/projectile.tscn")
 const BOLT_SPEED: float = 800.0
@@ -17,9 +17,10 @@ func _init() -> void:
 
 
 func _fire() -> void:
-	_fire_seek_spread(projectile_scene, 1, 0.0, BOLT_SPEED, _calc_damage(), BASE_PIERCE)
+	# L5 诸葛连弩：一次连射 3 发（小幅扩散）
+	var count: int = 3 if _l5_active else 1
+	_fire_seek_spread(projectile_scene, count, 0.12, BOLT_SPEED, _calc_damage(), BASE_PIERCE)
 
 
 func _apply_special() -> void:  # L5 诸葛连弩
-	_dmg_mult *= 1.4
-	_pierce_bonus += 2
+	pass

@@ -11,7 +11,6 @@ func _init() -> void:
 	weapon_icon_color = Color(0.5, 0.4, 0.3)
 	base_damage = 16.0
 	base_cooldown = 0.5
-	_count_supported = true
 
 
 func _fire() -> void:
